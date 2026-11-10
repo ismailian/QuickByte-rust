@@ -1,0 +1,30 @@
+[package]
+name = "quickbyte-agent"
+description = "QuickByte Queue Scheduler: starts QuickByte's download queues at their scheduled time, whether or not QuickByte is running."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+build = "build.rs"
+
+# Shipped as QuickByte.Agent.exe: Cargo does not allow a '.' in a binary name,
+# so scripts/build-release.ps1 renames it.
+[[bin]]
+name = "quickbyte-agent"
+path = "src/main.rs"
+
+# The agent has NO registry dependency, on purpose: a process that registered
+# its own autostart could not be switched off by removing the registration.
+[dependencies]
+quickbyte-core.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+crossbeam-channel.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading"] }
+
+[build-dependencies]
+winresource.workspace = true

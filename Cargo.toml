@@ -1,0 +1,98 @@
+# QuickByte — Rust workspace. See MIGRATION.md.
+#
+# The product version lives here and only here. Every crate inherits it with
+# `version.workspace = true`, each binary's build.rs stamps it into the Win32
+# VERSIONINFO resource, and the app reads it back with env!("CARGO_PKG_VERSION").
+# A build server can add a pre-release label or a build number without editing
+# this file:  QB_VERSION_SUFFIX=beta.1  QB_BUILD_REVISION=137
+
+[workspace]
+resolver = "3"
+members = [
+    "crates/quickbyte-core",
+    "crates/quickbyte-shell",
+    "crates/quickbyte-ui",
+    "crates/quickbyte-agent",
+    "crates/quickbyte-cli",
+]
+
+[workspace.package]
+version = "1.27.0"
+edition = "2024"
+rust-version = "1.85"
+authors = ["QuickByte"]
+license = "LicenseRef-Proprietary"
+publish = false
+homepage = "https://quickbyte-app.pages.dev"
+
+[workspace.dependencies]
+quickbyte-core = { path = "crates/quickbyte-core" }
+quickbyte-shell = { path = "crates/quickbyte-shell" }
+
+# Async and concurrency
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util", "fs", "process"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3"
+async-trait = "0.1"
+parking_lot = "0.12"
+crossbeam-channel = "0.5"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde_repr = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+
+# Networking
+reqwest = { version = "0.13", default-features = false, features = ["native-tls", "http2", "socks", "stream"] }
+native-tls = "0.2"
+tokio-native-tls = "0.3"
+url = "2"
+percent-encoding = "2"
+http = "1"
+hyper = { version = "1", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1"
+
+# Crypto / parsing
+sha2 = "0.10"
+sha1 = "0.10"
+md-5 = "0.10"
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+base64 = "0.22"
+rand = "0.9"
+roxmltree = "0.21"
+subtle = "2"
+
+# Errors / logging
+thiserror = "2"
+
+# Windows
+windows = { version = "0.62" }
+windows-registry = "0.6"
+
+# UI
+eframe = { version = "0.37", default-features = false, features = ["glow", "default_fonts", "persistence"] }
+egui = "0.37"
+egui_extras = "0.37"
+
+# Build
+winresource = "0.1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+debug = false
+incremental = false
+
+[profile.dev]
+# Keep debug builds usable: an un-optimised egui frame and TLS handshake are slow.
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2

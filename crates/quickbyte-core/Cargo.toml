@@ -1,0 +1,65 @@
+[package]
+name = "quickbyte-core"
+description = "QuickByte Download Engine — headless segmented-download engine: multi-connection HTTP/FTP transfers with pause, resume, retry and bandwidth limiting."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# No egui, no eframe, no quickbyte-shell — ever. Core is the engine; front-ends compose it.
+
+[dependencies]
+tokio.workspace = true
+tokio-util = { workspace = true, features = ["io"] }
+futures.workspace = true
+async-trait.workspace = true
+parking_lot.workspace = true
+crossbeam-channel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_repr.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+reqwest.workspace = true
+native-tls.workspace = true
+tokio-native-tls.workspace = true
+url.workspace = true
+percent-encoding.workspace = true
+http.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+http-body-util.workspace = true
+bytes.workspace = true
+sha2.workspace = true
+sha1.workspace = true
+md-5.workspace = true
+aes.workspace = true
+cbc.workspace = true
+base64.workspace = true
+rand.workspace = true
+roxmltree.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Cryptography",
+    "Win32_Security_Authentication_Identity",
+    "Win32_Security_Credentials",
+    "Win32_Security_Authorization",
+    "Win32_System_WindowsProgramming",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Memory",
+    "Win32_System_Threading",
+    "Win32_System_Pipes",
+    "Win32_System_IO",
+    "Win32_Networking_WinHttp",
+    "Win32_System_SystemInformation",
+] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

@@ -1,0 +1,29 @@
+//! Pure logic — the C# `Helpers/` folder.
+
+pub mod address_refresh;
+pub mod app_paths;
+pub mod atomic_file;
+pub mod app_user_agent;
+pub mod bandwidth_limiter;
+pub mod batch_links;
+pub mod byte_formatter;
+pub mod clipboard_links;
+pub mod completion_plan;
+pub mod connection_actions;
+pub mod disk_space;
+pub mod download_actions;
+pub mod download_search;
+pub mod file_category;
+pub mod file_checksum;
+pub mod file_name_helper;
+pub mod file_version_check;
+pub mod mark_of_the_web;
+pub mod product_version;
+pub mod range_splitter;
+pub mod retry_policy;
+pub mod secret_protector;
+pub mod settings_keys;
+pub mod speed_calculator;
+pub mod url_credentials;
+pub mod user_path;
+pub mod wake_times;

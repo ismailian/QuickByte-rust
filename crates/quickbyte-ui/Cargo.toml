@@ -1,0 +1,44 @@
+[package]
+name = "quickbyte-ui"
+description = "QuickByte download manager: multi-connection downloads with live per-connection progress."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+build = "build.rs"
+
+[[bin]]
+name = "QuickByte"
+path = "src/main.rs"
+
+[dependencies]
+quickbyte-core.workspace = true
+quickbyte-shell.workspace = true
+# "clipboard": Ctrl+C / Ctrl+V in text boxes reach the system clipboard.
+eframe = { workspace = true, features = ["clipboard"] }
+egui.workspace = true
+egui_extras.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+parking_lot.workspace = true
+crossbeam-channel.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+url.workspace = true
+percent-encoding.workspace = true
+# Reading the clipboard to pre-fill Add Download / Checksum / Refresh Address
+# (already in the tree through eframe's clipboard feature).
+arboard = { version = "3", default-features = false }
+# Native Open File / Pick Folder dialogs (Batch import, Browse…), run off the UI thread.
+rfd = { version = "0.18", default-features = false }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi"] }
+
+[build-dependencies]
+winresource.workspace = true

@@ -1,0 +1,5 @@
+# Link the C runtime statically so the executables need no VC++ redistributable —
+# the whole point of dropping the .NET runtime prerequisite is that the installer
+# needs nothing else on the machine.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

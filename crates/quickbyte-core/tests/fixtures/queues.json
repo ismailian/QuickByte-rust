@@ -1,0 +1,24 @@
+[
+  {
+    "Id": "d8d7a993-496a-4bfa-85e5-2d9e20ecf2eb",
+    "Name": "ArtCrafts",
+    "ConcurrentDownloads": 1,
+    "SpeedLimitBytesPerSecond": 0,
+    "WhenFinished": 0,
+    "Schedule": {
+      "Enabled": false,
+      "Days": 127,
+      "StartTime": "02:00:00",
+      "StopAtEnabled": false,
+      "StopTime": "07:00:00",
+      "WakeComputer": false
+    },
+    "ItemIds": [
+      "89208a55-3c9c-425f-aca4-3a17ffea746d",
+      "084bf220-9a3b-468f-b1a6-42a738f9ffcb",
+      "31c0e39b-4e2c-46cb-bc23-5d49876fdf71"
+    ],
+    "LastRunAt": "2026-11-09T10:08:25.1128086+00:00",
+    "CreatedAt": "2026-11-09T10:04:43.7502743+00:00"
+  }
+]
