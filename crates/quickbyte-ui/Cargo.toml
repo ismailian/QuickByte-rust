@@ -9,6 +9,10 @@ license.workspace = true
 publish.workspace = true
 build = "build.rs"
 
+# No doc examples meant as tests; skip building doctests.
+[lib]
+doctest = false
+
 [[bin]]
 name = "QuickByte"
 path = "src/main.rs"

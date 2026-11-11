@@ -93,6 +93,13 @@ incremental = false
 [profile.dev]
 # Keep debug builds usable: an un-optimised egui frame and TLS handshake are slow.
 opt-level = 1
+# Line tables are enough for backtraces and shrink build time and target/ size.
+# Switch to `debug = true` locally when you need a debugger.
+debug = "line-tables-only"
 
 [profile.dev.package."*"]
 opt-level = 2
+debug = false
+
+[profile.dev.build-override]
+debug = false

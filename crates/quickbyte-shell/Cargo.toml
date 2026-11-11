@@ -8,6 +8,10 @@ authors.workspace = true
 license.workspace = true
 publish.workspace = true
 
+# No doc examples meant as tests; skip building doctests.
+[lib]
+doctest = false
+
 [dependencies]
 quickbyte-core.workspace = true
 parking_lot.workspace = true

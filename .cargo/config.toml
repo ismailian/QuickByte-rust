@@ -2,4 +2,6 @@
 # the whole point of dropping the .NET runtime prerequisite is that the installer
 # needs nothing else on the machine.
 [target.x86_64-pc-windows-msvc]
+# rust-lld (shipped with rustup) links much faster than link.exe.
+linker = "rust-lld"
 rustflags = ["-C", "target-feature=+crt-static"]
