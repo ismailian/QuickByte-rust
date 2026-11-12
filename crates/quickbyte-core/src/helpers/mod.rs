@@ -26,4 +26,5 @@ pub mod settings_keys;
 pub mod speed_calculator;
 pub mod url_credentials;
 pub mod user_path;
+pub mod virus_total;
 pub mod wake_times;

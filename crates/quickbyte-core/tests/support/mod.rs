@@ -60,6 +60,8 @@ pub struct Asked {
     pub method: String,
     pub path: String,
     pub headers: Vec<(String, String)>,
+    /// What came after the head, as its Content-Length said.
+    pub body: Vec<u8>,
 }
 
 impl Asked {
@@ -201,13 +203,24 @@ fn parse_head(head: &str) -> Asked {
         method: request_line.first().unwrap_or(&"").to_string(),
         path: request_line.get(1).unwrap_or(&"").to_string(),
         headers,
+        body: Vec::new(),
     }
 }
 
 async fn serve(mut stream: TcpStream, requests: Arc<Mutex<Vec<Asked>>>, handler: Arc<Handler>) {
     loop {
         let Some(head) = read_head(&mut stream).await else { return };
-        let asked = parse_head(&head);
+        let mut asked = parse_head(&head);
+        // Read what the head promised, so a POST does not leave its body to be
+        // misread as the next request on the connection.
+        let length = asked.header("Content-Length").and_then(|v| v.parse::<usize>().ok()).unwrap_or(0);
+        if length > 0 {
+            let mut body = vec![0u8; length];
+            if stream.read_exact(&mut body).await.is_err() {
+                return;
+            }
+            asked.body = body;
+        }
         let index = {
             let mut all = requests.lock();
             all.push(asked.clone());

@@ -119,6 +119,7 @@ enum Command {
     Tooltip(String),
     OfferLink { link: String, file_name: String },
     Hint { title: &'static str, body: &'static str },
+    Notify { title: String, body: String },
     MenuState { can_pause: bool, can_resume: bool },
 }
 
@@ -221,6 +222,13 @@ impl Tray {
             title: "QuickByte started minimized",
             body: "It is running here in the notification area. Double-click this icon to open it.",
         });
+    }
+
+    /// A balloon about something that happened to a download (a VirusTotal
+    /// warning, a download deleted for its verdict). Unlike the hints, every one
+    /// is shown: each is news. *Additive to the original contract.*
+    pub fn notify(&self, title: &str, body: &str) {
+        self.post(Command::Notify { title: title.to_string(), body: body.to_string() });
     }
 
     /// Whether Pause All / Resume All can do anything right now (the C# menu
@@ -500,6 +508,11 @@ fn handle_commands(state: &mut WindowState) {
                 // it replaced.
                 state.offered_link = None;
                 show_balloon(state, 4000, title, body);
+            }
+            Command::Notify { title, body } => {
+                // Not budgeted like a hint: each one is news about a download.
+                state.offered_link = None;
+                show_balloon(state, 8000, &title, &body);
             }
             Command::MenuState { can_pause, can_resume } => {
                 state.can_pause = can_pause;

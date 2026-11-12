@@ -324,12 +324,32 @@ mod tests {
     #[test]
     fn unknown_settings_from_a_newer_build_survive_a_save() {
         let folder = TempFolder::new();
-        folder.write_file(FILE_NAME, br#"{"MaxRetries":2,"VirusTotalApiKey":"abc","VirusTotalEnabled":true}"#);
+        folder.write_file(FILE_NAME, br#"{"MaxRetries":2,"SomeFutureSetting":"abc","AnotherOne":true}"#);
         let service = service(&folder);
         service.save_value("MaxRetries", "5").unwrap();
         let text = std::fs::read_to_string(folder.path().join(FILE_NAME)).unwrap();
-        assert!(text.contains("\"VirusTotalApiKey\": \"abc\""), "{text}");
+        assert!(text.contains("\"SomeFutureSetting\": \"abc\""), "{text}");
         assert!(text.contains("\"MaxRetries\": 5"), "{text}");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_csharp_builds_virus_total_settings_carry_over_and_the_key_is_then_stored_encrypted() {
+        // 1.26.2 wrote these names. Whether it stored the key encrypted or not,
+        // a key that reads back as a VirusTotal key is kept — and from the next
+        // save on it is never in the file in the clear.
+        let key = "0123456789abcdef".repeat(4);
+        let folder = TempFolder::new();
+        folder.write_file(FILE_NAME, format!(r#"{{"VirusTotalEnabled":true,"ProtectedVirusTotalApiKey":"{key}"}}"#).as_bytes());
+
+        let loaded = service(&folder);
+        assert!(loaded.current().virus_total_enabled);
+        assert_eq!(loaded.current().virus_total_api_key, key);
+
+        loaded.save(loaded.create_copy());
+        let text = std::fs::read_to_string(folder.path().join(FILE_NAME)).unwrap();
+        assert!(!text.contains(&key), "{text}");
+        assert_eq!(service(&folder).current().virus_total_api_key, key);
     }
 
     // ------------------------------------------------- by name (SettingsKeysTests) --

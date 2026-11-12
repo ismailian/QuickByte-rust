@@ -91,6 +91,8 @@ fn build_services(
     }
     use quickbyte_core::helpers::app_user_agent;
     use quickbyte_core::net::app_proxy::AppProxy;
+    use quickbyte_core::net::virus_total::VirusTotalClient;
+    use quickbyte_core::services::virus_total_scanner::{ScannerOptions, VirusTotalScanner};
     use quickbyte_core::services::{
         browser_integration_server::BrowserIntegrationServer, download_manager::DownloadManager,
         download_repository::DownloadRepository, file_merger::FileMerger,
@@ -161,6 +163,17 @@ fn build_services(
     bridge.set_dispatcher(dispatcher.clone());
     let browser: Arc<dyn traits::BrowserIntegrationService> = Arc::new(bridge);
 
+    // Also started from main() once the UI has subscribed: at startup it may
+    // ask again a question the last run closed on.
+    let virus_total: Arc<dyn traits::VirusTotalService> = VirusTotalScanner::new(
+        downloads_dyn.clone(),
+        settings_dyn.clone(),
+        Arc::new(VirusTotalClient::new()),
+        Some(dispatcher.clone()),
+        runtime.clone(),
+        ScannerOptions::default(),
+    );
+
     AppServices {
         downloads: downloads_dyn,
         queues,
@@ -169,6 +182,7 @@ fn build_services(
         streams,
         updates,
         browser,
+        virus_total,
         runtime,
     }
 }
@@ -249,6 +263,7 @@ fn main() -> eframe::Result {
     };
 
     let browser = services.browser.clone();
+    let virus_total = services.virus_total.clone();
     let command_services = services.clone();
     let stop_commands = tokio_util::sync::CancellationToken::new();
     let stop_commands_at_exit = stop_commands.clone();
@@ -280,6 +295,7 @@ fn main() -> eframe::Result {
             // After the UI subscribed, so a capture during startup is not raised
             // into nothing. A failure to bind is shown in Options; it must not stop the app.
             browser.start();
+            virus_total.start();
             Ok(Box::new(QuickByteApp::new(state)))
         }),
     );

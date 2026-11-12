@@ -13,3 +13,4 @@ pub mod segment_map;
 pub mod settings_service;
 pub mod stream_download_service;
 pub mod update_service;
+pub mod virus_total_scanner;

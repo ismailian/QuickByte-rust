@@ -5,10 +5,10 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use super::{Extra, ProxySettings, null_as_default};
-use crate::enums::AppTheme;
+use crate::enums::{AppTheme, VirusTotalAction};
 use crate::helpers::app_paths;
 use crate::helpers::file_category::{self, FileCategory};
-use crate::models::join_path;
+use crate::models::{VirusTotalVerdict, join_path};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase", default)]
@@ -46,6 +46,28 @@ pub struct DownloadSettings {
     pub monitor_clipboard: bool,
     #[serde(deserialize_with = "null_as_default")]
     pub clipboard_file_types: String,
+    /// Check every new download with VirusTotal. Off until the user turns it on:
+    /// turning it on is their consent to sending addresses, hashes and files there.
+    pub virus_total_enabled: bool,
+    /// The user's own VirusTotal API key. Persisted DPAPI-encrypted, under the
+    /// name the 1.26.2 C# build gave it (`null` when there is none).
+    #[serde(rename = "ProtectedVirusTotalApiKey", with = "super::protected_text")]
+    pub virus_total_api_key: String,
+    /// How many vendors must call a file malicious for it to count as malicious.
+    /// Fewer malicious votes than this make it suspicious. The C# build's 3 is
+    /// the default: a single vendor's alarm on an installer is very often wrong.
+    pub virus_total_malicious_threshold: i32,
+    /// Also send downloads from a private source (a login, or the browser's
+    /// cookies) — by address and by upload. Off: such a file is only ever
+    /// looked up by its hash, which reveals nothing about it.
+    pub virus_total_upload_private_files: bool,
+    /// Files VirusTotal has never seen are uploaded up to this size, at most
+    /// [`DownloadSettings::VIRUS_TOTAL_MAX_UPLOAD_MEGABYTES`].
+    pub virus_total_max_upload_megabytes: i32,
+    #[serde(deserialize_with = "super::lenient_virus_total_action")]
+    pub virus_total_malicious_action: VirusTotalAction,
+    #[serde(deserialize_with = "super::lenient_virus_total_action")]
+    pub virus_total_suspicious_action: VirusTotalAction,
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -78,6 +100,13 @@ impl Default for DownloadSettings {
             appearance: AppTheme::System,
             monitor_clipboard: false,
             clipboard_file_types: crate::helpers::clipboard_links::DEFAULT_FILE_TYPES.to_string(),
+            virus_total_enabled: false,
+            virus_total_api_key: String::new(),
+            virus_total_malicious_threshold: Self::DEFAULT_VIRUS_TOTAL_MALICIOUS_THRESHOLD,
+            virus_total_upload_private_files: false,
+            virus_total_max_upload_megabytes: Self::VIRUS_TOTAL_MAX_UPLOAD_MEGABYTES,
+            virus_total_malicious_action: VirusTotalAction::Ask,
+            virus_total_suspicious_action: VirusTotalAction::Ask,
             extra: Extra::new(),
         }
     }
@@ -97,6 +126,9 @@ impl DownloadSettings {
     pub const DEFAULT_BROWSER_INTEGRATION_PORT: i32 = 9614;
     pub const MIN_BUFFER_SIZE_BYTES: i32 = 4 * 1024;
     pub const MAX_BUFFER_SIZE_BYTES: i32 = 8 * 1024 * 1024;
+    /// The most QuickByte uploads to VirusTotal, whatever the setting says.
+    pub const VIRUS_TOTAL_MAX_UPLOAD_MEGABYTES: i32 = 25;
+    pub const DEFAULT_VIRUS_TOTAL_MALICIOUS_THRESHOLD: i32 = 3;
 
     /// The folder a file of this name goes to: its category folder when
     /// sorting is on, else the default folder.
@@ -143,6 +175,30 @@ impl DownloadSettings {
 
     pub fn clamp_buffer_size(&self) -> usize {
         self.stream_buffer_size_bytes.clamp(Self::MIN_BUFFER_SIZE_BYTES, Self::MAX_BUFFER_SIZE_BYTES) as usize
+    }
+
+    /// Whether downloads are checked: switched on, and with a key to check them with.
+    pub fn virus_total_ready(&self) -> bool {
+        self.virus_total_enabled && !self.virus_total_api_key.trim().is_empty()
+    }
+
+    /// The largest file uploaded to VirusTotal, in bytes (1–25 MB).
+    pub fn virus_total_upload_limit_bytes(&self) -> i64 {
+        self.virus_total_max_upload_megabytes.clamp(1, Self::VIRUS_TOTAL_MAX_UPLOAD_MEGABYTES) as i64 * 1024 * 1024
+    }
+
+    /// Vendors needed to call a file malicious (at least 1).
+    pub fn virus_total_threshold(&self) -> i32 {
+        self.virus_total_malicious_threshold.max(1)
+    }
+
+    /// What to do about a verdict; `None` for one that needs nothing done.
+    pub fn virus_total_action(&self, verdict: VirusTotalVerdict) -> Option<VirusTotalAction> {
+        match verdict {
+            VirusTotalVerdict::Malicious => Some(self.virus_total_malicious_action),
+            VirusTotalVerdict::Suspicious => Some(self.virus_total_suspicious_action),
+            _ => None,
+        }
     }
 
     /// The progress sampling interval, clamped to 50–2000 ms.

@@ -21,19 +21,20 @@ use quickbyte_core::enums::{
 use quickbyte_core::error::{CoreError, Result};
 use quickbyte_core::events::{
     ConnectionsSnapshot, Dispatcher, DownloadEvent, DownloadListChangeType, DownloadProgress,
-    DownloadStatusChanged, EventHub, EventStream, QueueChangeType, QueueEvent,
+    DownloadStatusChanged, EventHub, EventStream, QueueChangeType, QueueEvent, VirusTotalEvent,
 };
 use quickbyte_core::helpers::file_checksum::{ChecksumResult, ExpectedChecksum};
 use quickbyte_core::models::{
     AddressChange, ConnectionInfo, DownloadItem, DownloadQueue, DownloadRequest, DownloadSettings,
     RemoteFileInfo, RequestOptions, StreamFormat, StreamSource, UpdateCheckResult,
-    UpdateDownloadProgress, UpdateManifest,
+    UpdateDownloadProgress, UpdateManifest, VirusTotalReport, VirusTotalSource, VirusTotalStep,
+    VirusTotalVerdict,
 };
 use quickbyte_core::serde_compat::{DateTimeOffset, TimeSpan};
 use quickbyte_core::streaming::{StreamChoice, StreamDescription};
 use quickbyte_core::traits::{
     BrowserEvent, BrowserIntegrationService, DownloadManager, ProgressFn, QueueManager,
-    RemoteFileInfoProvider, SettingsService, StreamResolver, UpdateService,
+    RemoteFileInfoProvider, SettingsService, StreamResolver, UpdateService, VirusTotalService,
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -50,6 +51,7 @@ pub fn services(dispatcher: Arc<dyn Dispatcher>, runtime: tokio::runtime::Handle
     let queues = Arc::new(DemoQueues::new(dispatcher.clone(), downloads.clone()));
     downloads.seed(&queues);
     DemoDownloads::start_engine(downloads.clone(), queues.clone(), &runtime);
+    let virus_total = Arc::new(DemoVirusTotal::new(dispatcher.clone(), downloads.clone()));
     AppServices {
         downloads,
         queues,
@@ -58,6 +60,7 @@ pub fn services(dispatcher: Arc<dyn Dispatcher>, runtime: tokio::runtime::Handle
         streams: Arc::new(DemoStreams),
         updates: Arc::new(DemoUpdates::default()),
         browser: Arc::new(DemoBrowser::new(dispatcher)),
+        virus_total,
         runtime,
     }
 }
@@ -1398,5 +1401,63 @@ impl BrowserIntegrationService for DemoBrowser {
         let mut token = self.token.lock();
         *token = token.chars().rev().collect();
         token.clone()
+    }
+}
+
+// --------------------------------------------------------------------------
+// VirusTotal
+// --------------------------------------------------------------------------
+
+/// Sends nothing anywhere. A key "checks out" when it has a key's shape, and an
+/// answer to a question is carried out on the demo's own downloads.
+pub struct DemoVirusTotal {
+    hub: EventHub<VirusTotalEvent>,
+    downloads: Arc<dyn DownloadManager>,
+}
+
+impl DemoVirusTotal {
+    fn new(dispatcher: Arc<dyn Dispatcher>, downloads: Arc<dyn DownloadManager>) -> Self {
+        Self {
+            hub: EventHub::new(Some(dispatcher)),
+            downloads,
+        }
+    }
+}
+
+#[async_trait]
+impl VirusTotalService for DemoVirusTotal {
+    fn subscribe(&self) -> EventStream<VirusTotalEvent> {
+        self.hub.subscribe()
+    }
+    fn start(&self) {}
+    fn resolve(&self, download_id: Uuid, keep: bool) {
+        if !keep {
+            self.downloads.remove(download_id, false);
+        }
+    }
+    async fn check_api_key(&self, api_key: &str, _cancel: &CancellationToken) -> Result<()> {
+        tokio::time::sleep(Duration::from_millis(600)).await;
+        if quickbyte_core::helpers::virus_total::looks_like_api_key(api_key) {
+            Ok(())
+        } else {
+            Err(CoreError::auth(
+                quickbyte_core::net::virus_total::KEY_REJECTED,
+                true,
+            ))
+        }
+    }
+}
+
+/// A flagged report, for `--open virustotal` screenshots.
+pub fn flagged_report() -> VirusTotalReport {
+    VirusTotalReport {
+        verdict: VirusTotalVerdict::Malicious,
+        step: VirusTotalStep::Url,
+        source: Some(VirusTotalSource::Url),
+        malicious: 7,
+        suspicious: 2,
+        engines: 71,
+        permalink: Some("https://www.virustotal.com/gui/home/url".into()),
+        ..Default::default()
     }
 }

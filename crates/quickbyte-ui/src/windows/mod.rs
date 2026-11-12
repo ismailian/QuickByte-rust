@@ -41,6 +41,7 @@ pub mod queues;
 pub mod refresh_address;
 pub mod settings;
 pub mod update;
+pub mod virus_total;
 
 use std::any::Any;
 
@@ -72,6 +73,8 @@ pub enum WindowKind {
     RefreshAddress(Uuid),
     About,
     PowerCountdown,
+    /// VirusTotal flagged a download and asks what to do with it; one per download.
+    VirusTotal(Uuid),
 }
 
 impl WindowKind {

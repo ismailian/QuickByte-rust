@@ -211,5 +211,9 @@ mod tests {
         let text = std::fs::read_to_string(folder.path().join(FILE_NAME)).unwrap();
         assert!(text.contains("\"VirusTotal\""), "{text}");
         assert_eq!(repository.load_all()[0].extra, items[0].extra);
+        // The 1.26.2 report is now understood, and kept as it was meant.
+        let report = repository.load_all()[0].virus_total.clone().unwrap();
+        assert_eq!(report.verdict, crate::models::VirusTotalVerdict::Clean);
+        assert!(!report.is_unfinished());
     }
 }

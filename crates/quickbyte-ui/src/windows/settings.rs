@@ -15,11 +15,12 @@ use std::any::Any;
 use std::collections::BTreeMap;
 
 use egui::{Align, ComboBox, Layout, Margin, RichText, TextEdit, Ui, ViewportBuilder, vec2};
-use quickbyte_core::enums::AppTheme;
+use quickbyte_core::enums::{AppTheme, VirusTotalAction};
 use quickbyte_core::helpers::byte_formatter::BYTES_PER_KILOBYTE;
 use quickbyte_core::helpers::clipboard_links;
 use quickbyte_core::helpers::file_category::FileCategory;
 use quickbyte_core::helpers::user_path;
+use quickbyte_core::helpers::virus_total::looks_like_api_key;
 use quickbyte_core::models::{
     DownloadSettings, ProxyKind, ProxyMode, ProxySettings, is_path_fully_qualified,
 };
@@ -28,19 +29,21 @@ use super::prompt::{Prompt, PromptIcon};
 use super::{AppWindow, WindowCx, WindowKind};
 use crate::actions;
 use crate::icons::Icon;
+use crate::services::Pending;
 use crate::shell::{NativePick, Waker};
 use crate::theme;
 use crate::view_model::ViewModel;
 use crate::widgets::controls::{self, ButtonKind};
 use crate::widgets::{connection_count, flat_tabs, form};
 
-const TABS: [&str; 6] = [
+const TABS: [&str; 7] = [
     "Connection",
     "Folders",
     "Interface",
     "System",
     "Proxy",
     "Browser",
+    "VirusTotal",
 ];
 const CAPTION_WIDTH: f32 = 186.0;
 const CONTROL_WIDTH: f32 = 84.0;
@@ -57,6 +60,10 @@ enum FolderTarget {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Answer {
     Ok,
+    /// Agreed to share downloads with VirusTotal.
+    EnableVirusTotal,
+    /// Declined: the check stays off.
+    KeepVirusTotalOff,
     /// The warning after a save that went through: closing follows.
     CloseAfter,
 }
@@ -97,6 +104,17 @@ pub struct SettingsWindow {
     browser_enabled: bool,
     browser_port: i64,
     browser_token: String,
+
+    vt_enabled: bool,
+    vt_api_key: String,
+    vt_upload_private: bool,
+    vt_max_upload_mb: i64,
+    vt_malicious_action: VirusTotalAction,
+    vt_suspicious_action: VirusTotalAction,
+    /// The Check button's answer, while it is on its way.
+    vt_key_check: Option<Pending<Result<(), String>>>,
+    /// What the last check said, and whether that was good news.
+    vt_key_status: Option<(String, bool)>,
 
     folder_pick: Option<(FolderTarget, NativePick)>,
     prompt: Option<Prompt<Answer>>,
@@ -154,6 +172,17 @@ impl SettingsWindow {
             browser_port: s.browser_integration_port.clamp(1024, 65535) as i64,
             // Reading the token is what mints it on a fresh install.
             browser_token: cx_token,
+            vt_enabled: s.virus_total_enabled,
+            vt_api_key: s.virus_total_api_key.clone(),
+            vt_upload_private: s.virus_total_upload_private_files,
+            vt_max_upload_mb: s
+                .virus_total_max_upload_megabytes
+                .clamp(1, DownloadSettings::VIRUS_TOTAL_MAX_UPLOAD_MEGABYTES)
+                as i64,
+            vt_malicious_action: s.virus_total_malicious_action,
+            vt_suspicious_action: s.virus_total_suspicious_action,
+            vt_key_check: None,
+            vt_key_status: None,
             folder_pick: None,
             prompt: None,
         }
@@ -238,6 +267,30 @@ impl SettingsWindow {
             bypass: self.proxy_bypass.trim().to_string(),
             extra: current.proxy.extra.clone(),
         };
+        updated.virus_total_enabled = self.vt_enabled;
+        updated.virus_total_api_key = self.vt_api_key.trim().to_string();
+        updated.virus_total_upload_private_files = self.vt_upload_private;
+        updated.virus_total_max_upload_megabytes = self.vt_max_upload_mb as i32;
+        updated.virus_total_malicious_action = self.vt_malicious_action;
+        updated.virus_total_suspicious_action = self.vt_suspicious_action;
+
+        // A check that is on but cannot run would look exactly like one that
+        // found nothing.
+        if updated.virus_total_enabled && updated.virus_total_api_key.is_empty() {
+            self.tab = TABS.len() - 1;
+            self.error("Enter your VirusTotal API key, or turn the VirusTotal check off.");
+            return;
+        }
+        if !updated.virus_total_api_key.is_empty()
+            && !looks_like_api_key(&updated.virus_total_api_key)
+        {
+            self.tab = TABS.len() - 1;
+            self.error(
+                "That is not a VirusTotal API key. A key is 64 letters and digits; copy it from \
+                 your API key page on virustotal.com.",
+            );
+            return;
+        }
 
         // Kept, not cleared, when another mode is chosen: switching back should
         // not mean typing the proxy in again.
@@ -737,6 +790,216 @@ impl SettingsWindow {
     }
 }
 
+impl SettingsWindow {
+    /// Turning the check on is consent to sharing downloads with VirusTotal, so
+    /// it is asked for in so many words rather than taken from a tick.
+    fn ask_to_enable_virus_total(&mut self) {
+        self.prompt = Some(
+            Prompt::new(
+                "Share downloads with VirusTotal?",
+                format!(
+                    "QuickByte will send VirusTotal the address of each new download and the \
+                     SHA-256 of each finished file, and upload finished files VirusTotal has \
+                     never seen, up to {} MB.\n\nVirusTotal shares what it receives with \
+                     security companies and its paid subscribers. Logins, cookies and headers \
+                     are never sent.",
+                    DownloadSettings::VIRUS_TOTAL_MAX_UPLOAD_MEGABYTES
+                ),
+                PromptIcon::Question,
+                Answer::KeepVirusTotalOff,
+            )
+            .button("Cancel", Answer::KeepVirusTotalOff, ButtonKind::Secondary)
+            .button("Turn On", Answer::EnableVirusTotal, ButtonKind::Primary),
+        );
+    }
+
+    fn virus_total_tab(&mut self, ui: &mut Ui, cx: &WindowCx<'_>) {
+        let p = theme::palette();
+        if let Some(pending) = &mut self.vt_key_check
+            && let Some(answer) = pending.poll()
+        {
+            self.vt_key_check = None;
+            self.vt_key_status = Some(match answer {
+                Ok(()) => ("VirusTotal accepted the key.".into(), true),
+                Err(e) => (e, false),
+            });
+        }
+
+        let was_enabled = self.vt_enabled;
+        if check_row(ui, &mut self.vt_enabled, "Check new downloads with VirusTotal").changed()
+            && self.vt_enabled
+            && !was_enabled
+        {
+            // Not on until the question below is answered yes.
+            self.vt_enabled = false;
+            self.ask_to_enable_virus_total();
+        }
+        note_row(
+            ui,
+            "By turning this on you agree to QuickByte sending VirusTotal each new download's \
+             address and each finished file's SHA-256, and uploading files it has never seen. \
+             What VirusTotal receives is shared with security companies and visible to its paid \
+             subscribers. Checks run in the background; a download is only held up if one is flagged.",
+        );
+
+        let enabled = self.vt_enabled;
+        let mut check = false;
+        text_row(ui, "API key", "From your VirusTotal account.", |ui, width| {
+            ui.add_enabled_ui(enabled, |ui| {
+                let edited = form::text_with(
+                    ui,
+                    TextEdit::singleline(&mut self.vt_api_key)
+                        .password(true)
+                        .hint_text(RichText::new("64 letters and digits").color(p.text_disabled)),
+                    width - BROWSE_WIDTH - 6.0,
+                )
+                .changed();
+                if edited {
+                    self.vt_key_status = None;
+                }
+                ui.add_space(6.0 - ui.spacing().item_spacing.x);
+                check = controls::button_sized(
+                    ui,
+                    if self.vt_key_check.is_some() { "Checking…" } else { "Check" },
+                    ButtonKind::Secondary,
+                    self.vt_key_check.is_none() && !self.vt_api_key.trim().is_empty(),
+                    BROWSE_WIDTH,
+                )
+                .on_hover_text("Asks VirusTotal whether it accepts this key. Uses one request of its quota.")
+                .clicked();
+            });
+        });
+        ui.horizontal(|ui| {
+            ui.add_space(CAPTION_WIDTH + ui.spacing().item_spacing.x);
+            match &self.vt_key_status {
+                Some((text, good)) => {
+                    form::status_line(ui, text, if *good { p.success } else { p.danger });
+                }
+                None => {
+                    if controls::link(ui, "Get a free API key from VirusTotal", theme::small())
+                        .clicked()
+                    {
+                        cx.shell
+                            .open_web_page("https://www.virustotal.com/gui/my-apikey");
+                    }
+                }
+            }
+        });
+        if check {
+            let key = self.vt_api_key.trim().to_string();
+            let service = cx.services.virus_total.clone();
+            self.vt_key_status = None;
+            self.vt_key_check = Some(cx.services.run_waking(
+                Waker::new(ui.ctx(), cx.viewport),
+                async move {
+                    service
+                        .check_api_key(&key, &tokio_util::sync::CancellationToken::new())
+                        .await
+                        .map_err(|e| match e {
+                            // Its own words point here, which is where the user already is.
+                            quickbyte_core::error::CoreError::AuthenticationRequired { .. } => {
+                                "VirusTotal did not accept this key.".to_string()
+                            }
+                            other => other.to_string(),
+                        })
+                },
+            ));
+        }
+
+        ui.add_space(4.0);
+        // Not a field here (the C# build had none either); `qb config` sets it.
+        let threshold = cx.vm.settings.virus_total_threshold();
+        let malicious_hint = if threshold == 1 {
+            "A security vendor called it malicious.".to_string()
+        } else {
+            format!("{threshold} or more vendors called it malicious.")
+        };
+        let suspicious_hint = if threshold == 1 {
+            "Suspicious, but nobody said malicious."
+        } else {
+            "Fewer did, or some called it suspicious."
+        };
+        ui.add_enabled_ui(enabled, |ui| {
+            let action_label = |a: VirusTotalAction| match a {
+                VirusTotalAction::Ask => "Pause and ask me",
+                VirusTotalAction::Delete => "Delete it",
+                VirusTotalAction::Warn => "Only warn me",
+            };
+            for (caption, hint, id, value) in [
+                (
+                    "When flagged as malicious",
+                    malicious_hint.as_str(),
+                    "opt-vt-malicious",
+                    &mut self.vt_malicious_action,
+                ),
+                (
+                    "When flagged as suspicious",
+                    suspicious_hint,
+                    "opt-vt-suspicious",
+                    &mut self.vt_suspicious_action,
+                ),
+            ] {
+                action_row(ui, caption, hint, |ui| {
+                    ComboBox::from_id_salt(id)
+                        .width(ACTION_WIDTH)
+                        .selected_text(action_label(*value))
+                        .show_ui(ui, |ui| {
+                            for a in VirusTotalAction::ALL {
+                                ui.selectable_value(value, a, action_label(a));
+                            }
+                        });
+                });
+            }
+            option_row(
+                ui,
+                "Largest file to upload (MB)",
+                "Bigger unknown files are only looked up by hash.",
+                |ui| {
+                    form::spinner(
+                        ui,
+                        "opt-vt-upload",
+                        &mut self.vt_max_upload_mb,
+                        1,
+                        DownloadSettings::VIRUS_TOTAL_MAX_UPLOAD_MEGABYTES as i64,
+                        1,
+                        CONTROL_WIDTH,
+                    );
+                },
+            );
+            check_row(
+                ui,
+                &mut self.vt_upload_private,
+                "Also share private downloads (signed in, or sent with browser cookies)",
+            );
+            note_row(
+                ui,
+                "Off: those are only looked up by hash, and never sent by address or uploaded.",
+            );
+        });
+    }
+}
+
+const ACTION_WIDTH: f32 = 130.0;
+
+/// [`option_row`] with room for a wider control (the action choices).
+fn action_row(ui: &mut Ui, caption: &str, hint: &str, add: impl FnOnce(&mut Ui)) {
+    ui.allocate_ui_with_layout(
+        vec2(ui.available_width(), OPTION_ROW),
+        Layout::left_to_right(Align::Center),
+        |ui| {
+            let width = ui.available_width() - ACTION_WIDTH - 24.0;
+            form::caption_block(ui, width, caption, hint);
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.allocate_ui_with_layout(
+                    vec2(ACTION_WIDTH + 12.0, 22.0),
+                    Layout::left_to_right(Align::Center),
+                    add,
+                );
+            });
+        },
+    );
+}
+
 /// A caption block on the left and a control right-aligned in the last column
 /// (`AddNumericRow` / `AddConnectionsRow`).
 fn option_row(ui: &mut Ui, caption: &str, hint: &str, add: impl FnOnce(&mut Ui)) {
@@ -799,7 +1062,7 @@ impl AppWindow for SettingsWindow {
     fn builder(&self, _vm: &ViewModel) -> ViewportBuilder {
         ViewportBuilder::default()
             .with_title("QuickByte Options")
-            .with_inner_size(vec2(560.0, 446.0))
+            .with_inner_size(vec2(580.0, 470.0))
             .with_resizable(false)
             .with_maximize_button(false)
             .with_minimize_button(false)
@@ -861,7 +1124,8 @@ impl AppWindow for SettingsWindow {
                             2 => self.interface_tab(ui),
                             3 => self.system_tab(ui),
                             4 => self.proxy_tab(ui),
-                            _ => self.browser_tab(ui, cx),
+                            5 => self.browser_tab(ui, cx),
+                            _ => self.virus_total_tab(ui, cx),
                         }
                     });
             });
@@ -869,8 +1133,11 @@ impl AppWindow for SettingsWindow {
         if let Some(prompt) = &self.prompt {
             if let Some(answer) = prompt.show(ui) {
                 self.prompt = None;
-                if answer == Answer::CloseAfter {
-                    cx.close();
+                match answer {
+                    Answer::CloseAfter => cx.close(),
+                    Answer::EnableVirusTotal => self.vt_enabled = true,
+                    Answer::KeepVirusTotalOff => self.vt_enabled = false,
+                    Answer::Ok => {}
                 }
             }
             return;

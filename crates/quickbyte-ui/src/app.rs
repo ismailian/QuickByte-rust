@@ -37,7 +37,9 @@ use std::time::{Duration, Instant};
 use egui::{Pos2, Ui, ViewportBuilder, ViewportCommand, ViewportId};
 use parking_lot::Mutex;
 use quickbyte_core::enums::{DownloadStatus, PowerAction};
-use quickbyte_core::events::{Dispatcher, DownloadEvent, EventStream, QueueEvent};
+use quickbyte_core::events::{
+    Dispatcher, DownloadEvent, EventStream, QueueEvent, VirusTotalEvent, VirusTotalNotice,
+};
 use quickbyte_core::models::{
     CapturedDownload, DownloadItem, DownloadRequest, DownloadSettings, UpdateCheckResult,
 };
@@ -57,6 +59,7 @@ use crate::windows::complete::CompleteWindow;
 use crate::windows::details::DetailsWindow;
 use crate::windows::main::MainWindow;
 use crate::windows::refresh_address::RefreshAddressWindow;
+use crate::windows::virus_total::VirusTotalWindow;
 use crate::windows::{AppCommand, AppWindow, DialogRequest, WindowCx, WindowKind, build_dialog};
 
 /// Requests from outside the UI thread: the composition root's hand-offs (a
@@ -116,6 +119,7 @@ struct Streams {
     queues: EventStream<QueueEvent>,
     settings: EventStream<Arc<DownloadSettings>>,
     browser: EventStream<BrowserEvent>,
+    virus_total: EventStream<VirusTotalEvent>,
     tray: Option<TrayChannels>,
     handoffs: Option<crossbeam_channel::Receiver<String>>,
     external: crossbeam_channel::Receiver<External>,
@@ -212,6 +216,7 @@ impl UiState {
             queues: services.queues.subscribe(),
             settings: services.settings.subscribe(),
             browser: services.browser.subscribe(),
+            virus_total: services.virus_total.subscribe(),
             tray,
             handoffs: startup.handoffs.take(),
             external: rx,
@@ -380,6 +385,19 @@ impl UiState {
                 return;
             }
             "about" => DialogRequest::About,
+            // A flagged download's question, on the first running download.
+            "virustotal" => {
+                let Some(item) = self.vm.items().find(|i| i.status == DownloadStatus::Downloading) else {
+                    return;
+                };
+                self.open_window(Box::new(VirusTotalWindow::new(VirusTotalNotice {
+                    download_id: item.id,
+                    file_name: item.file_name.clone(),
+                    report: crate::demo::flagged_report(),
+                    finished: false,
+                })));
+                return;
+            }
             "power" => DialogRequest::PowerCountdown {
                 action: PowerAction::ShutDown,
                 reason: "Queue \"Overnight\" finished".into(),
@@ -416,6 +434,10 @@ impl UiState {
         }
         if settings_changed {
             self.on_settings_changed();
+        }
+        let virus_total: Vec<VirusTotalEvent> = self.streams.virus_total.try_iter().collect();
+        for event in virus_total {
+            self.on_virus_total_event(event);
         }
         while let Ok(event) = self.streams.browser.try_recv() {
             if let BrowserEvent::DownloadCaptured(captured) = event {
@@ -497,6 +519,7 @@ impl UiState {
             VmEffect::Removed(id) => {
                 self.main.forget(id);
                 self.close_window(&WindowKind::Details(id));
+                self.close_window(&WindowKind::VirusTotal(id));
             }
             VmEffect::StatusChanged { id, new, .. } => {
                 self.main.on_status_changed(id);
@@ -522,6 +545,33 @@ impl UiState {
                 let plan = CompletionPlan::for_queue(&queue, drained, self.vm.items());
                 if plan.has_power_action() {
                     self.start_power_countdown(&plan, format!("Queue \"{}\" finished", queue.name));
+                }
+            }
+        }
+    }
+
+    /// A VirusTotal verdict that needs someone: a question gets its own window
+    /// (the download is held until it is answered), the rest a notification.
+    fn on_virus_total_event(&mut self, event: VirusTotalEvent) {
+        match event {
+            VirusTotalEvent::DecisionNeeded(notice) => {
+                self.open_window(Box::new(VirusTotalWindow::new(notice)));
+            }
+            VirusTotalEvent::Warned(notice) => self.shell.tray_notify(
+                &format!("VirusTotal: {}", notice.file_name),
+                &format!("{}. The download carries on.", notice.report.summary()),
+            ),
+            // One the user chose needs no telling; one done for them does.
+            VirusTotalEvent::Deleted {
+                notice,
+                automatically,
+            } => {
+                self.close_window(&WindowKind::VirusTotal(notice.download_id));
+                if automatically {
+                    self.shell.tray_notify(
+                        "QuickByte deleted a download",
+                        &format!("{}\n{}.", notice.file_name, notice.report.summary()),
+                    );
                 }
             }
         }

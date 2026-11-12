@@ -11,3 +11,4 @@ pub mod remote_file_info_provider;
 pub mod request_decorator;
 pub mod segment_range;
 pub mod sspi;
+pub mod virus_total;

@@ -21,7 +21,7 @@ use std::collections::BTreeMap;
 
 use serde_json::Value;
 
-use crate::enums::AppTheme;
+use crate::enums::{AppTheme, VirusTotalAction};
 use crate::error::CoreError;
 use crate::helpers::file_category::FileCategory;
 use crate::models::{DownloadSettings, ProxySettings};
@@ -36,12 +36,13 @@ enum Kind {
     /// A string that may be unset: a blank reads as `null`.
     OptionalText,
     Theme,
+    VirusTotalAction,
     Proxy,
     CategoryFolders,
 }
 
 /// Every key, in the order `DownloadSettings` declares them.
-const TABLE: [(&str, Kind); 24] = [
+const TABLE: [(&str, Kind); 31] = [
     ("DefaultConnectionsCount", Kind::Int),
     ("DynamicSegmentation", Kind::Bool),
     ("MaxRetries", Kind::Int),
@@ -66,6 +67,15 @@ const TABLE: [(&str, Kind); 24] = [
     ("Appearance", Kind::Theme),
     ("MonitorClipboard", Kind::Bool),
     ("ClipboardFileTypes", Kind::Text),
+    ("VirusTotalEnabled", Kind::Bool),
+    // Its encrypted form, as the file holds it — like the proxy password. A plain
+    // key written here reads back as itself (see `models::protected_text`).
+    ("ProtectedVirusTotalApiKey", Kind::Text),
+    ("VirusTotalMaliciousThreshold", Kind::Int),
+    ("VirusTotalUploadPrivateFiles", Kind::Bool),
+    ("VirusTotalMaxUploadMegabytes", Kind::Int),
+    ("VirusTotalMaliciousAction", Kind::VirusTotalAction),
+    ("VirusTotalSuspiciousAction", Kind::VirusTotalAction),
 ];
 
 const THEME_NAMES: [(&str, AppTheme); 3] = [("System", AppTheme::System), ("Light", AppTheme::Light), ("Dark", AppTheme::Dark)];
@@ -185,6 +195,13 @@ fn format(kind: Kind, value: Option<&Value>) -> String {
                 .find(|(_, theme)| *theme as i64 == number)
                 .map_or_else(|| number.to_string(), |(name, _)| name.to_string())
         }
+        (Kind::VirusTotalAction, Some(Value::Number(n))) => {
+            let number = n.as_i64().unwrap_or(-1);
+            VirusTotalAction::ALL
+                .iter()
+                .find(|a| **a as i64 == number)
+                .map_or_else(|| number.to_string(), |a| a.name().to_string())
+        }
         (_, Some(Value::Number(n))) => n.to_string(),
         (_, Some(other)) => serde_json::to_string(other).unwrap_or_default(),
     }
@@ -216,6 +233,11 @@ fn parse(name: &str, kind: Kind, value: &str) -> Result<Value, SettingsKeyError>
             .find(|(n, _)| n.eq_ignore_ascii_case(text))
             .map(|(_, theme)| Value::from(*theme as i32))
             .ok_or_else(|| invalid("System, Light, Dark")),
+        Kind::VirusTotalAction => VirusTotalAction::ALL
+            .iter()
+            .find(|a| a.name().eq_ignore_ascii_case(text))
+            .map(|a| Value::from(*a as i32))
+            .ok_or_else(|| invalid("Ask, Delete, Warn")),
         Kind::Int => text.parse::<i32>().map(Value::from).map_err(|_| invalid("a whole number")),
         Kind::Long => text.parse::<i64>().map(Value::from).map_err(|_| invalid("a whole number")),
         Kind::Proxy => parse_json::<ProxySettings>(text).ok_or_else(|| invalid("a JSON value")),
@@ -405,8 +427,36 @@ mod tests {
     #[test]
     fn unknown_keys_from_a_newer_build_survive_a_change_by_name() {
         let mut settings = DownloadSettings::default();
-        settings.extra.insert("VirusTotalApiKey".into(), Value::String("k".into()));
+        settings.extra.insert("SomeFutureSetting".into(), Value::String("k".into()));
         let changed = with(&settings, &[("MaxRetries", "4")]).unwrap();
-        assert_eq!(changed.extra.get("VirusTotalApiKey"), Some(&Value::String("k".into())));
+        assert_eq!(changed.extra.get("SomeFutureSetting"), Some(&Value::String("k".into())));
+    }
+
+    #[test]
+    fn virus_total_actions_are_read_and_written_by_name() {
+        let changed = with(
+            &DownloadSettings::default(),
+            &[("VirusTotalMaliciousAction", "delete"), ("VirusTotalSuspiciousAction", "Warn")],
+        )
+        .unwrap();
+        assert_eq!(changed.virus_total_malicious_action, VirusTotalAction::Delete);
+        assert_eq!(changed.virus_total_suspicious_action, VirusTotalAction::Warn);
+        assert_eq!(read(&changed, "VirusTotalMaliciousAction").unwrap(), "Delete");
+        assert!(matches!(
+            with(&DownloadSettings::default(), &[("VirusTotalMaliciousAction", "1")]),
+            Err(SettingsKeyError::InvalidValue(_))
+        ));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_virus_total_key_typed_by_name_is_kept_and_survives_other_changes() {
+        // Typed in the clear through `qb config`; read back as the key, and still
+        // the key after a change to something else re-reads the encrypted copy.
+        let key = "a".repeat(64);
+        let changed = with(&DownloadSettings::default(), &[("ProtectedVirusTotalApiKey", key.as_str())]).unwrap();
+        assert_eq!(changed.virus_total_api_key, key);
+        assert_ne!(read(&changed, "ProtectedVirusTotalApiKey").unwrap(), key, "only the encrypted form is shown");
+        assert_eq!(with(&changed, &[("MaxRetries", "4")]).unwrap().virus_total_api_key, key);
     }
 }

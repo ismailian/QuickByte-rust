@@ -119,6 +119,9 @@ impl Shell {
     pub fn tray_notify_started_minimized(&self) {
         self.with_tray(|t| t.notify_started_minimized());
     }
+    pub fn tray_notify(&self, title: &str, body: &str) {
+        self.with_tray(|t| t.notify(title, body));
+    }
     pub fn tray_offer_clipboard_link(&self, link: &str, file_name: &str) {
         self.with_tray(|t| t.offer_clipboard_link(link, file_name));
     }

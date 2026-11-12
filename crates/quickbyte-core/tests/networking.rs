@@ -20,3 +20,5 @@ mod remote_file_info_provider;
 mod streaming;
 #[path = "networking/update_service.rs"]
 mod update_service;
+#[path = "networking/virus_total.rs"]
+mod virus_total;

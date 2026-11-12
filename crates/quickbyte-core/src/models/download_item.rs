@@ -3,7 +3,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{DownloadCredentials, Extra, Headers, RemoteFileVersion, RequestOptions, StreamSource, null_as_default};
+use super::{
+    DownloadCredentials, Extra, Headers, RemoteFileVersion, RequestOptions, StreamSource, VirusTotalReport, null_as_default,
+};
 use crate::enums::{CompletionActions, DownloadCategory, DownloadStatus, PowerAction};
 use crate::helpers::file_checksum::ChecksumResult;
 use crate::models::DownloadSettings;
@@ -72,6 +74,9 @@ pub struct DownloadItem {
     pub derived_progress_percentage: f64,
     #[serde(rename = "Category")]
     pub derived_category: DownloadCategory,
+    /// What the VirusTotal check found; `None` for a download it never looked at.
+    #[serde(rename = "VirusTotal")]
+    pub virus_total: Option<VirusTotalReport>,
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -111,6 +116,7 @@ impl Default for DownloadItem {
             if_range_unsupported: false,
             derived_progress_percentage: 0.0,
             derived_category: DownloadCategory::Queued,
+            virus_total: None,
             extra: Extra::new(),
         }
     }

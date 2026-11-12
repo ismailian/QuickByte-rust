@@ -21,7 +21,7 @@ use quickbyte_core::helpers::byte_formatter::{
 };
 use quickbyte_core::helpers::file_category::{FileCategory, get_category};
 use quickbyte_core::helpers::file_checksum::ChecksumResult;
-use quickbyte_core::models::{DownloadItem, UpdateCheckResult};
+use quickbyte_core::models::{DownloadItem, UpdateCheckResult, VirusTotalVerdict};
 use uuid::Uuid;
 
 use super::prompt::{Prompt, PromptIcon};
@@ -1533,9 +1533,41 @@ pub fn status_text(item: &DownloadItem) -> String {
     }
 }
 
-/// The description column: the error of a failed download, the completion time
-/// (and checksum verdict) of a finished one, the stream quality, or the type.
+/// What the VirusTotal check found, as the description column says it. `None`
+/// when it found nothing worth a word (or never looked).
+pub fn virus_total_text(item: &DownloadItem) -> Option<String> {
+    let report = item.virus_total.as_ref()?;
+    match report.verdict {
+        VirusTotalVerdict::Malicious | VirusTotalVerdict::Suspicious => Some(format!(
+            "⚠ VirusTotal: {}{}",
+            report.summary(),
+            if report.kept_by_user { " · kept" } else { "" }
+        )),
+        VirusTotalVerdict::Clean => Some("✓ VirusTotal: clean".into()),
+        VirusTotalVerdict::Pending if item.status == DownloadStatus::Completed => {
+            Some("Checking with VirusTotal…".into())
+        }
+        _ => None,
+    }
+}
+
+/// The description column: a VirusTotal warning above all else, then the error
+/// of a failed download, the completion time (with the checksum and VirusTotal
+/// verdicts) of a finished one, the stream quality, or the type.
 pub fn description_for(item: &DownloadItem) -> String {
+    let virus_total = virus_total_text(item);
+    if item
+        .virus_total
+        .as_ref()
+        .is_some_and(|r| r.verdict.is_negative())
+        && let Some(warning) = virus_total.clone()
+    {
+        return warning;
+    }
+    let with_virus_total = |text: String| match &virus_total {
+        Some(v) => format!("{text} · {v}"),
+        None => text,
+    };
     if item.status == DownloadStatus::Failed
         && let Some(error) = item
             .error_message
@@ -1548,7 +1580,7 @@ pub fn description_for(item: &DownloadItem) -> String {
         && let Some(done) = item.completed_at
     {
         let when = format_short_date_time(done);
-        return match item.checksum_result {
+        return with_virus_total(match item.checksum_result {
             ChecksumResult::Match
                 if actions::checksum_name(item.expected_checksum.as_deref()).is_some() =>
             {
@@ -1559,7 +1591,7 @@ pub fn description_for(item: &DownloadItem) -> String {
             }
             ChecksumResult::Mismatch => format!("✗ Checksum does not match · {when}"),
             _ => when,
-        };
+        });
     }
     if let Some(stream) = &item.stream {
         return if stream.quality.is_empty() {

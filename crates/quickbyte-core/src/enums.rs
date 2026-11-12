@@ -201,3 +201,31 @@ impl std::ops::BitAnd for ScheduleDays {
         Self(self.0 & rhs.0)
     }
 }
+
+/// What happens when VirusTotal says a download is malicious or suspicious —
+/// one choice per verdict, in Options > VirusTotal. Persisted as a number like
+/// every enum here; read leniently, so a value from a newer build is `Ask`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize_repr, Deserialize_repr)]
+#[repr(i32)]
+pub enum VirusTotalAction {
+    /// Pause the download (when it is still running) and ask: delete it, or carry on.
+    #[default]
+    Ask = 0,
+    /// Delete the download and its file without asking.
+    Delete = 1,
+    /// Let it carry on, and say so in a notification.
+    Warn = 2,
+}
+
+impl VirusTotalAction {
+    pub const ALL: [VirusTotalAction; 3] = [Self::Ask, Self::Delete, Self::Warn];
+
+    /// The name `settings_keys` reads and writes.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Ask => "Ask",
+            Self::Delete => "Delete",
+            Self::Warn => "Warn",
+        }
+    }
+}

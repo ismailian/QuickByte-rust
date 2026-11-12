@@ -558,6 +558,12 @@ impl traits::DownloadManager for DownloadManager {
     fn flush(&self) {
         self.persist_all();
     }
+
+    fn set_virus_total(&self, download_id: Uuid, report: crate::models::VirusTotalReport) {
+        if self.update(download_id, |i| i.virus_total = Some(report.clone())) {
+            self.persist_all();
+        }
+    }
 }
 
 impl Drop for DownloadManager {

@@ -176,3 +176,35 @@ pub enum QueueEvent {
     /// rather than being stopped by the user or its own stop time.
     StateChanged { queue_id: Uuid, state: QueueState, drained: bool },
 }
+
+/// A VirusTotal verdict that someone has to hear about.
+#[derive(Clone, Debug, PartialEq)]
+pub struct VirusTotalNotice {
+    pub download_id: Uuid,
+    pub file_name: String,
+    pub report: crate::models::VirusTotalReport,
+    /// The file was already complete when the verdict arrived, so the choice is
+    /// keep-or-delete rather than continue-or-delete.
+    pub finished: bool,
+}
+
+/// What the VirusTotal check publishes.
+#[derive(Clone, Debug, PartialEq)]
+pub enum VirusTotalEvent {
+    /// The verdict's action is Ask: the download is paused (if it was still
+    /// running) until the user answers through `VirusTotalService::resolve`.
+    DecisionNeeded(VirusTotalNotice),
+    /// The verdict's action is Warn: the download carries on.
+    Warned(VirusTotalNotice),
+    /// The download and its file are gone. `automatically`: by the verdict's
+    /// Delete action, rather than because the user chose Delete when asked.
+    Deleted { notice: VirusTotalNotice, automatically: bool },
+}
+
+impl VirusTotalEvent {
+    pub fn notice(&self) -> &VirusTotalNotice {
+        match self {
+            Self::DecisionNeeded(n) | Self::Warned(n) | Self::Deleted { notice: n, .. } => n,
+        }
+    }
+}

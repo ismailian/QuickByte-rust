@@ -12,8 +12,9 @@ use uuid::Uuid;
 
 use crate::enums::{CompletionActions, ConnectionCommand, ConnectionStatus, PowerAction, QueueState};
 use crate::error::Result;
-use crate::events::{DownloadEvent, EventCallback, EventStream, QueueEvent};
+use crate::events::{DownloadEvent, EventCallback, EventStream, QueueEvent, VirusTotalEvent};
 use crate::helpers::file_checksum::{ChecksumResult, ExpectedChecksum};
+use crate::helpers::virus_total::ScanResult;
 use crate::models::{
     AddressChange, CapturedDownload, ConnectionInfo, DownloadItem, DownloadQueue, DownloadRequest, DownloadSettings,
     RemoteFileInfo, RequestOptions, UpdateCheckResult, UpdateDownloadProgress, UpdateManifest,
@@ -240,6 +241,10 @@ pub trait DownloadManager: Send + Sync {
     /// Flushes pending saves (called on exit).
     fn flush(&self);
 
+    /// Records what the VirusTotal check found, persists it, and tells every
+    /// window. A default that does nothing, for the fakes that never check.
+    fn set_virus_total(&self, _download_id: Uuid, _report: crate::models::VirusTotalReport) {}
+
     /// An inline subscriber (what `QueueManager` listens to removals through).
     /// Defaults to a thread draining [`Self::subscribe`].
     fn subscribe_fn(&self, callback: EventCallback<DownloadEvent>) {
@@ -331,6 +336,43 @@ pub trait QueueManager: Send + Sync {
     fn has_scheduled_queues(&self) -> bool;
     /// Stops runners and timers.
     fn shutdown(&self);
+}
+
+// ---------------------------------------------------------------------------
+// VirusTotal
+// ---------------------------------------------------------------------------
+
+/// VirusTotal's API (v3), as the check uses it. Every call takes the user's key.
+/// `Ok(None)` from a lookup means VirusTotal has no report — not an error.
+#[async_trait]
+pub trait VirusTotalApi: Send + Sync {
+    /// The latest report on an address, if VirusTotal has one.
+    async fn url_report(&self, api_key: &str, url: &str, cancel: &CancellationToken) -> Result<Option<ScanResult>>;
+    /// Asks for an address to be analysed; returns the analysis id.
+    async fn submit_url(&self, api_key: &str, url: &str, cancel: &CancellationToken) -> Result<String>;
+    /// An analysis' result once it has finished; `None` while it is still running.
+    async fn analysis(&self, api_key: &str, analysis_id: &str, cancel: &CancellationToken) -> Result<Option<ScanResult>>;
+    /// The report on a file, by its SHA-256, if VirusTotal has seen it.
+    async fn file_report(&self, api_key: &str, sha256: &str, cancel: &CancellationToken) -> Result<Option<ScanResult>>;
+    /// Uploads a file for analysis; returns the analysis id.
+    async fn upload_file(&self, api_key: &str, path: &str, cancel: &CancellationToken) -> Result<String>;
+    /// Whether VirusTotal accepts the key.
+    async fn check_key(&self, api_key: &str, cancel: &CancellationToken) -> Result<()>;
+}
+
+/// The background VirusTotal check, as the UI sees it.
+#[async_trait]
+pub trait VirusTotalService: Send + Sync {
+    fn subscribe(&self) -> EventStream<VirusTotalEvent>;
+    /// Starts watching downloads, and carries on any check the app closed in the
+    /// middle of. Called once the UI has subscribed, so a question asked at
+    /// startup is not asked into nothing.
+    fn start(&self);
+    /// The user's answer to [`VirusTotalEvent::DecisionNeeded`]: keep the
+    /// download (and carry on with it) or delete it and its file.
+    fn resolve(&self, download_id: Uuid, keep: bool);
+    /// Whether VirusTotal accepts `api_key` — Options' Check button.
+    async fn check_api_key(&self, api_key: &str, cancel: &CancellationToken) -> Result<()>;
 }
 
 // ---------------------------------------------------------------------------

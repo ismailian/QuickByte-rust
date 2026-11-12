@@ -8,13 +8,19 @@ use quickbyte_core::models::{DownloadItem, DownloadQueue, DownloadSettings};
 use quickbyte_core::serde_compat::strip_bom;
 use serde_json::Value;
 
+/// Settings this build has that the C# build never wrote. Saving a C# profile
+/// adds them with their defaults; anything else new in the file is a failure.
+/// (A key that is missing on one side and `null` on the other is no difference
+/// at all: both builds read the two the same.)
+const ADDED_BY_THIS_BUILD: [&str; 3] = ["VirusTotalMaxUploadMegabytes", "VirusTotalMaliciousAction", "VirusTotalSuspiciousAction"];
+
 /// Re-encrypting a password yields a different ciphertext every time, so a
 /// protected value is compared by whether it is present, not by its bytes.
 fn normalise(mut v: Value) -> Value {
     match &mut v {
         Value::Object(map) => {
             for (key, value) in map.iter_mut() {
-                if key == "ProtectedPassword" {
+                if key == "ProtectedPassword" || key == "ProtectedVirusTotalApiKey" {
                     *value = Value::Bool(!value.is_null());
                 } else {
                     *value = normalise(std::mem::take(value));
@@ -43,7 +49,7 @@ fn diff(path: &str, a: &Value, b: &Value, out: &mut Vec<String>) {
             for k in x.keys().chain(y.keys()) {
                 if let (Some(p), Some(q)) = (x.get(k), y.get(k)) {
                     diff(&format!("{path}.{k}"), p, q, out);
-                } else if x.get(k) != y.get(k) {
+                } else if x.get(k).or(y.get(k)).is_some_and(|v| !v.is_null()) && !(y.get(k).is_none() && ADDED_BY_THIS_BUILD.contains(&k.as_str())) {
                     out.push(format!("{path}.{k}: {:?} vs {:?}", x.get(k), y.get(k)));
                 }
             }

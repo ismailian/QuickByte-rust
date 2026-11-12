@@ -47,7 +47,9 @@ doc comments that explain it.
   feature. Once they are pushed, they are diffed against `c32b573` and ported
   into the matching Rust modules (milestone M9). Until then, the port
   **preserves** those keys in `settings.json` and the `VirusTotal` field on
-  each download (see §5.6), so nothing is lost.
+  each download (see §5.6), so nothing is lost. **VirusTotal itself has since
+  been written for the Rust build** (`services::virus_total_scanner`), reading
+  the 1.26.2 key names it shares; see M9 for the keys it carries but does not use.
 - **No changes to the browser extension.** It talks to the same loopback
   protocol on the same port with the same token, so it keeps working
   unmodified.
@@ -376,8 +378,8 @@ Every persisted struct has
 pub extra: serde_json::Map<String, serde_json::Value>,
 ```
 
-so keys this build does not know (the 1.26.2 VirusTotal settings, a download's
-`VirusTotal` object) are read, carried along and written back unchanged.
+so keys this build does not know (such as the 1.26.2 VirusTotal settings it
+does not use — see M9) are read, carried along and written back unchanged.
 
 ### 5.7 In-flight downloads
 
@@ -661,4 +663,12 @@ pass.
 ### M9: Catch up with the unpushed 1.26.x C# changes
 - [ ] Pull the newer C# source and diff `src/` against `c32b573`
 - [ ] Port each change (VirusTotal and anything else) into its Rust module, with its tests
+  - [x] VirusTotal, written fresh from the spec rather than ported (the C# source is
+    unavailable). It reads 1.26.2's `VirusTotalEnabled`, `ProtectedVirusTotalApiKey`,
+    `VirusTotalUploadPrivateFiles` and `VirusTotalMaliciousThreshold`, and a download's
+    `VirusTotal: {"Verdict": …}`. It carries `VirusTotalSubmitLinks`,
+    `VirusTotalUploadFiles` and `VirusTotalRequestsPerMinute` unchanged but does not
+    act on them: the address is always submitted, unknown files are uploaded up to the
+    size limit, and requests are paced at the free API's 4 a minute. Diff against the
+    C# version once it is pushed.
 - [ ] Re-run the compatibility fixtures against a 1.26.2 profile
