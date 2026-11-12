@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuickByte: a free download manager for Windows</title>
+  <meta name="description" content="QuickByte splits a download across up to 32 connections, takes over from your browser, and resumes after a pause, a crash or a dropped connection. Free for Windows.">
+  <link rel="canonical" href="https://quickbyte-app.pages.dev/">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="preload" href="/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/site.css">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="QuickByte: a free download manager for Windows">
+  <meta property="og:description" content="Faster downloads over up to 32 connections, with resume that holds up.">
+  <meta property="og:url" content="https://quickbyte-app.pages.dev/">
+  <meta property="og:image" content="https://quickbyte-app.pages.dev/img/main-light.png">
+  <meta name="theme-color" content="#f3f6f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1b1d21" media="(prefers-color-scheme: dark)">
+  <script src="/js/site.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="/"><img src="/img/logo.png" alt="" width="30" height="30">QuickByte</a>
+      <nav aria-label="Main">
+        <a href="#features">Features</a>
+        <a href="#download">Download</a>
+        <a href="https://github.com/ismailian/quickbyte">GitHub</a>
+      </nav>
+    </header>
+  </div>
+
+  <main id="main">
+    <section class="hero">
+      <div class="wrap">
+        <h1>Download big files faster, and never start one over.</h1>
+        <p class="lede">QuickByte is a free download manager for Windows. It fetches a file over up to 32 connections at once, takes downloads over from your browser, and carries on after a pause, a crash or a dropped connection.</p>
+        <div class="get">
+          <a class="button" data-installer href="/releases/QuickByte-1.25.1-x64.exe">Download for Windows</a>
+          <span class="get-note">Version <span data-release="version">1.25.1</span>, <span data-release="size">2.7 MB</span>. Needs the <a href="#download">.NET 8 runtime</a>.</span>
+        </div>
+      </div>
+
+      <figure class="map">
+        <canvas id="block-map" role="img" aria-label="A grid of blocks standing for a file, filling in from eight points at once."></canvas>
+        <figcaption class="wrap">
+          <div class="map-bar">
+            <p>A simulation of QuickByte filling a file. When a connection finishes, it takes over half of the biggest stretch still left, so one slow connection can't hold up the rest.</p>
+            <p><span class="map-status" id="map-status"></span> <button class="text-button" id="map-replay" type="button">Run again</button></p>
+          </div>
+        </figcaption>
+      </figure>
+    </section>
+
+    <div class="wrap overview">
+      <picture>
+        <source srcset="/img/main-dark.png" media="(prefers-color-scheme: dark)">
+        <img class="shot" src="/img/main-light.png" width="1168" height="652" alt="QuickByte's main window: three downloads running at 55 MB/s, with queued, paused, failed and finished files listed below them.">
+      </picture>
+    </div>
+
+    <section class="section">
+      <div class="wrap">
+        <h2>Most download failures are silent. QuickByte looks for them.</h2>
+        <p class="section-intro">A broken file rarely comes with an error message. These are the problems QuickByte checks for, and what it does about each one.</p>
+        <dl class="failures">
+          <div>
+            <dt>The server says it can resume, but it can't</dt>
+            <dd>QuickByte tests this with a real request before splitting a file. If the test fails, the file comes down over one connection instead of arriving damaged.</dd>
+          </div>
+          <div>
+            <dt>The file changes while your download is paused</dt>
+            <dd>Every resume checks the file's version on the server. If it's a new one, QuickByte starts again rather than joining old bytes to new.</dd>
+          </div>
+          <div>
+            <dt>A connection drops</dt>
+            <dd>A new one takes over its range. If the server won't allow that many at once, the range waits for a free slot and the download keeps going.</dd>
+          </div>
+          <div>
+            <dt>The link expires overnight</dt>
+            <dd>Paste a new link, or click the download again in your browser. Everything already on disk is kept.</dd>
+          </div>
+          <div>
+            <dt>The drive fills up at the very end</dt>
+            <dd>Free space is checked before the first byte. On the same drive, the final merge needs room for little more than the file itself.</dd>
+          </div>
+          <div>
+            <dt>The file isn't the one you expected</dt>
+            <dd>Paste the checksum from the download page. If the finished file doesn't match, the download fails and won't open from a "complete" window.</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <div class="wrap" id="features">
+      <section class="feature">
+        <div class="feature-text">
+          <h2>See what every connection is doing</h2>
+          <p>Each download has its own window with live progress for each connection. Right-click one to pause, resume or restart it while the others keep going.</p>
+          <p>Limit speed per download, per queue or overall, and change it while the file is transferring. The window's taskbar button shows progress too.</p>
+        </div>
+        <div class="feature-shot">
+          <picture>
+            <source srcset="/img/details-dark.png" media="(prefers-color-scheme: dark)">
+            <img class="shot" src="/img/details-light.png" width="584" height="612" alt="A download's details window at 20 percent, with a bar showing eight separate ranges and a table of each connection's progress.">
+          </picture>
+        </div>
+      </section>
+
+      <section class="feature feature--flip">
+        <div class="feature-text">
+          <h2>Leave it running overnight</h2>
+          <p>Put downloads in a queue, then choose the days, a start and stop time, how many run at once and how fast they can go. QuickByte doesn't have to be open.</p>
+          <p>A queue can wake your computer to start, then sleep or shut it down when the last file is done. You get a countdown first, with Cancel as the default.</p>
+        </div>
+        <div class="feature-shot">
+          <picture>
+            <source srcset="/img/queue-schedule-dark.png" media="(prefers-color-scheme: dark)">
+            <img class="shot" src="/img/queue-schedule-light.png" width="884" height="632" alt="The Queues and Scheduler window: a queue called Overnight set to start at 01:30 every day, stop at 07:00 and wake the computer.">
+          </picture>
+        </div>
+      </section>
+
+      <section class="feature">
+        <div class="feature-text">
+          <h2>Save videos in the quality you want</h2>
+          <p>Give QuickByte an HLS or DASH video and it lists the available qualities. The extension spots the videos on a page, so you often don't need to find the link yourself.</p>
+          <p>When sound comes separately, it's saved as a second file beside the video. Live streams and DRM-protected videos aren't supported, and QuickByte says so before adding them.</p>
+        </div>
+        <div class="feature-shot">
+          <picture>
+            <source srcset="/img/add-dark.png" media="(prefers-color-scheme: dark)">
+            <img class="shot" src="/img/add-light.png" width="564" height="640" alt="The Add New Download window with a video address entered and a Quality list set to 1080p at 5.2 megabits per second.">
+          </picture>
+        </div>
+      </section>
+
+      <section class="feature feature--flip">
+        <div class="feature-text">
+          <h2>Take over from your browser</h2>
+          <p>The extension for Chrome, Edge and Firefox sends your downloads to QuickByte, along with the cookies the browser would have used. That's what makes links work on sites you're signed in to.</p>
+          <p>It talks only to QuickByte on your own computer. It isn't in the browser stores yet, so for now you <a href="https://github.com/ismailian/quickbyte/tree/main/browser/chrome-extension">load it by hand</a>.</p>
+        </div>
+        <div class="feature-shot">
+          <img class="shot popup-shot" src="/img/extension-popup.png" width="520" height="515" alt="The QuickByte browser extension's popup: connected to QuickByte 1.25.1, listing two videos on the current page, each with a Download button.">
+        </div>
+      </section>
+
+      <section class="feature">
+        <div class="feature-text">
+          <h2>Script it from a prompt</h2>
+          <p><code>qb</code> controls the running app, so a batch file or scheduled task can add and manage downloads. Add <code>--json</code> for output that other tools can read.</p>
+        </div>
+        <div class="feature-shot">
+<pre class="terminal"><code>qb add https://example.com/big.iso
+qb add URL1 URL2 --queue Night
+qb add URL -o D:\Isos -c 16
+qb add URL/master.m3u8 --quality 720p
+qb list --status active
+qb pause 3f9c
+qb queue start Night</code></pre>
+        </div>
+      </section>
+    </div>
+
+    <section class="section">
+      <div class="wrap">
+        <h2>Also included</h2>
+        <ul class="also">
+          <li><b>HTTP, HTTPS, FTP and FTPS</b>, all split the same way</li>
+          <li><b>Proxies:</b> your Windows settings, HTTP, SOCKS5 or SOCKS4</li>
+          <li><b>Sign-in</b> to servers that use Basic, Digest or Windows authentication</li>
+          <li><b>Batch downloads:</b> paste a page, or a pattern like <code>photo[001-250].jpg</code></li>
+          <li><b>Clipboard watching:</b> copy a link and get offered the download. Off by default</li>
+          <li><b>Folders by file type:</b> videos in one place, installers in another</li>
+          <li><b>Custom User-Agent</b> for servers that turn away download managers</li>
+          <li><b>Search</b> your download list as you type</li>
+          <li><b>Light and dark themes</b> that can follow Windows</li>
+          <li><b>Internet zone marking,</b> so Windows treats finished files as it would a browser download</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="band" id="download">
+      <div class="wrap">
+        <h2>Get QuickByte for Windows</h2>
+        <div class="band-grid">
+          <div>
+            <ol class="steps">
+              <li>
+                <strong>Install the .NET 8 Desktop Runtime</strong>
+                QuickByte runs on it and the installer doesn't include it. Get the x64 version from <a href="https://dotnet.microsoft.com/download/dotnet/8.0">Microsoft</a>.
+              </li>
+              <li>
+                <strong>Run the QuickByte installer</strong>
+                The installer isn't code-signed yet, so Windows SmartScreen may warn you. Choose More info, then Run anyway.
+              </li>
+              <li>
+                <strong>Add the browser extension, if you want it</strong>
+                Follow the <a href="https://github.com/ismailian/quickbyte/tree/main/browser/chrome-extension">steps on GitHub</a>, then pair it using the token in Options &gt; Browser.
+              </li>
+            </ol>
+          </div>
+          <div>
+            <a class="button" data-installer href="/releases/QuickByte-1.25.1-x64.exe">Download <span data-release="version">1.25.1</span></a>
+            <dl class="facts">
+              <div><dt>Works on</dt><dd>Windows 10 and 11, 64-bit</dd></div>
+              <div><dt>Size</dt><dd data-release="size">2.7 MB</dd></div>
+              <div><dt>Released</dt><dd data-release="date">31 October 2026</dd></div>
+              <div><dt>SHA-256</dt><dd><code data-release="sha256">1ecaa2de4b611f0c8d2e0ecac2451bc97665923b41ef14a551201a1fc0d00af8</code></dd></div>
+            </dl>
+            <p>To check your copy, run <code>Get-FileHash <span data-release="file">QuickByte-1.25.1-x64.exe</span></code> in PowerShell.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <div class="foot-links">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="https://github.com/ismailian/quickbyte">Source code</a>
+      <a href="https://github.com/ismailian/quickbyte/issues">Report a problem</a>
+    </div>
+    <p>&copy; 2026 Cyberliberty, Inc. File names in the screenshots are examples.</p>
+  </footer>
+</body>
+</html>

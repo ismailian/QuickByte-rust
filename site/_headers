@@ -1,0 +1,24 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+# The app reads this to decide whether an update exists. A stale copy looks
+# exactly like "no update available", so it is revalidated every time.
+/releases/latest.json
+  Cache-Control: no-cache
+  Content-Type: application/json; charset=utf-8
+
+# Short on purpose: an installer re-cut under the same name with an old copy
+# still cached would fail the app's SHA-256 check.
+/releases/*.exe
+  Cache-Control: public, max-age=3600
+  Content-Type: application/octet-stream
+  Content-Disposition: attachment
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/img/*
+  Cache-Control: public, max-age=86400

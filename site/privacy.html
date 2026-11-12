@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy: QuickByte</title>
+  <meta name="description" content="What the QuickByte app, browser extension and website do with your data.">
+  <link rel="canonical" href="https://quickbyte-app.pages.dev/privacy">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="/"><img src="/img/logo.png" alt="" width="30" height="30">QuickByte</a>
+    </header>
+  </div>
+
+  <main class="legal">
+    <h1>Privacy</h1>
+    <p class="updated">Last updated 31 October 2026</p>
+
+    <p class="short">QuickByte has no accounts, analytics or telemetry. Your download list, settings and passwords stay on your computer. We never receive them.</p>
+
+    <p>This policy covers the QuickByte app, its browser extension and this website, all published by Cyberliberty, Inc. ("we").</p>
+
+    <h2>What leaves your computer</h2>
+    <p>The app only connects to the internet for two reasons.</p>
+    <ul>
+      <li><strong>Your downloads.</strong> QuickByte connects to the servers you download from, or to a proxy if you set one. Those servers see your IP address and whatever a download sends them, such as a User-Agent, referrer, cookies or login. We aren't involved in these connections and can't see them.</li>
+      <li><strong>Update checks.</strong> Each time it starts, and when you choose Help &gt; Check for Updates, QuickByte asks this website for the latest version number. That request carries your IP address and the app's User-Agent. It carries no identifier, and nothing about your downloads. If you accept an update, the installer comes from this website too.</li>
+    </ul>
+
+    <h2>What stays on your computer</h2>
+    <p>QuickByte keeps its data in <code>%AppData%\QuickByte</code>. None of it is sent to us.</p>
+    <ul>
+      <li><strong>Settings</strong>, including the token that pairs the browser extension.</li>
+      <li><strong>Your download list</strong>: each file's name, address and folder, plus any request headers needed to resume it. For a download handed over by the extension, that includes the site's cookies. They're stored as plain text so a download can resume later, so anything that can read your user profile can read them. Removing a download from the list removes them.</li>
+      <li><strong>Passwords</strong> for sites, FTP servers and proxies. These are encrypted with Windows' data protection, tied to your Windows account.</li>
+      <li><strong>Queues</strong> and a log of the scheduler's decisions.</li>
+      <li><strong>Partly downloaded files</strong>, until they finish or you remove them.</li>
+    </ul>
+    <p>Finished files are saved where you choose. Unless Windows policy turns this off, each one is marked as coming from the internet, as a browser would do. That mark records the file's address and the page it came from, with any login removed.</p>
+    <p>Clipboard watching is off by default. When it's on, QuickByte looks only at a clipboard that holds a single link, and keeps nothing.</p>
+
+    <h2>The browser extension</h2>
+    <p>The extension reads the address, referrer, user agent and cookies for a download as it hands it over, and sends them only to QuickByte on your own computer (<code>127.0.0.1</code>). It never sends them anywhere else. It needs access to every site because a download can start from any of them. In its options you can exclude the sites you choose.</p>
+    <p>It stores its settings, including the pairing token, in your browser's local storage. The video addresses it notices on a page are held in memory for that tab, and are dropped when the tab closes or navigates away.</p>
+
+    <h2>This website</h2>
+    <p>The site sets no cookies, runs no analytics, and loads nothing from other companies. It's hosted on Cloudflare Pages, so Cloudflare handles each request and may process technical data such as IP addresses to deliver the site and protect it from abuse. See <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>. The same applies to update checks.</p>
+
+    <h2>Who else gets your data</h2>
+    <p>We don't sell or share personal data, because we don't collect any. If you report a problem on GitHub, what you write is public and <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a> applies. Please leave download addresses, cookies and passwords out of reports.</p>
+
+    <h2>Removing your data</h2>
+    <p>Uninstalling QuickByte removes the app but leaves your data in place, so a reinstall picks up where you left off. To remove it, delete the <code>%AppData%\QuickByte</code> folder. Your finished files aren't touched. Removing the extension from your browser deletes its settings.</p>
+    <p>Because we hold no data about you, we have nothing to access, correct or delete on request.</p>
+
+    <h2>Children</h2>
+    <p>QuickByte isn't aimed at children, and we don't knowingly collect anything from anyone of any age.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy changes, we'll update this page and the date at the top.</p>
+
+    <h2>Questions</h2>
+    <p>Ask on <a href="https://github.com/ismailian/quickbyte/issues">GitHub</a>.</p>
+  </main>
+
+  <footer class="wrap foot">
+    <div class="foot-links">
+      <a href="/">Home</a>
+      <a href="/privacy" aria-current="page">Privacy</a>
+      <a href="/terms">Terms</a>
+    </div>
+    <p>&copy; 2026 Cyberliberty, Inc.</p>
+  </footer>
+</body>
+</html>

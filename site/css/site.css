@@ -1,0 +1,229 @@
+/* QuickByte site. The colours are the app's own (src/QuickByte.UI/Controls/Theme.cs),
+   so a screenshot sits on the page as if it belonged there. */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/archivo-latin-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --paper: #f3f6f9;
+  --surface: #ffffff;
+  --ink: #1e252e;
+  --muted: #55606d;
+  --line: #d3dbe3;
+  --track: #dde4eb;
+  --blue: #0072c6;
+  --blue-deep: #005498;
+  --green: #1b8a4c;
+  --head: #4aa3e7;
+  --on-blue: #ffffff;
+  --shadow: 0 28px 60px -28px rgb(0 40 80 / 0.42);
+  --gutter: clamp(16px, 4vw, 48px);
+  --page: 1180px;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1b1d21;
+    --surface: #222429;
+    --ink: #e6e9ed;
+    --muted: #a7afb9;
+    --line: #3a3e45;
+    --track: #2d3137;
+    --blue: #68b4ee;
+    --blue-deep: #18609e;
+    --green: #4cbb76;
+    --head: #cfe7fb;
+    --shadow: 0 28px 60px -28px rgb(0 0 0 / 0.8);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Archivo", "Segoe UI", system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+img, canvas { display: block; max-width: 100%; }
+img { height: auto; }
+
+a { color: var(--blue); text-underline-offset: 0.16em; }
+a:hover { text-decoration-thickness: 2px; }
+
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; border-radius: 2px; }
+
+code, kbd, pre { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 0.92em; }
+
+h1, h2, h3 { font-stretch: 125%; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2.5rem, 6.9vw, 5.6rem); line-height: 0.98; }
+h2 { font-size: clamp(1.9rem, 4vw, 3.1rem); }
+h3 { font-size: 1.35rem; line-height: 1.15; letter-spacing: -0.01em; }
+
+p { margin: 0; max-width: 62ch; }
+
+.wrap { max-width: var(--page); margin-inline: auto; padding-inline: var(--gutter); }
+
+.skip { position: absolute; left: -999px; top: 8px; background: var(--surface); padding: 8px 12px; z-index: 2; }
+.skip:focus { left: 8px; }
+
+/* ---- Top bar ---------------------------------------------------------- */
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+
+.brand { flex: none; display: inline-flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font-stretch: 125%; font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
+.brand img { width: 30px; height: 30px; }
+
+.top nav { display: flex; gap: clamp(14px, 3vw, 28px); font-weight: 500; }
+.top nav a { color: inherit; text-decoration: none; }
+.top nav a:hover { color: var(--blue); }
+
+/* ---- Hero ------------------------------------------------------------- */
+
+.hero { padding-top: clamp(28px, 6vw, 72px); }
+.hero h1 { max-width: 17ch; }
+
+.lede { margin-top: 24px; font-size: clamp(1.1rem, 1.7vw, 1.3rem); line-height: 1.45; max-width: 54ch; }
+
+.get { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: 30px; }
+.get-note { color: var(--muted); }
+
+.button {
+  display: inline-block;
+  padding: 14px 24px;
+  background: #0072c6;
+  color: var(--on-blue);
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 4px;
+}
+.button:hover { background: #005498; }
+
+/* ---- Block map: the page's one loud thing ---------------------------- */
+
+.map { margin: clamp(36px, 6vw, 64px) 0 0; }
+.map canvas { width: 100%; }
+
+.map-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 24px; padding-top: 12px; color: var(--muted); font-size: 0.98rem; }
+.map-bar p { max-width: 70ch; }
+
+.map-status { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.text-button { background: none; border: 0; padding: 0; color: var(--blue); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 0.16em; cursor: pointer; }
+
+/* ---- Screenshots ------------------------------------------------------ */
+
+.shot { border-radius: 10px; box-shadow: var(--shadow); outline: 1px solid var(--line); outline-offset: -1px; }
+
+.overview { margin-top: clamp(40px, 7vw, 80px); }
+.overview img { margin-inline: auto; }
+
+/* ---- Quiet failures --------------------------------------------------- */
+
+.section { padding-top: clamp(64px, 10vw, 128px); }
+.section > .wrap > h2 { max-width: 20ch; }
+.section-intro { margin-top: 16px; font-size: 1.15rem; color: var(--muted); }
+
+.failures { margin: clamp(28px, 4vw, 48px) 0 0; border-top: 2px solid var(--ink); }
+.failures > div { display: grid; grid-template-columns: 5fr 7fr; gap: 6px 40px; padding-block: 20px; border-bottom: 1px solid var(--line); }
+.failures dt { font-weight: 700; font-size: 1.15rem; line-height: 1.3; }
+.failures dd { margin: 0; color: var(--muted); max-width: 58ch; }
+
+/* ---- Feature pairs ---------------------------------------------------- */
+
+.feature { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 24px; align-items: center; padding-top: clamp(56px, 8vw, 104px); }
+.feature-text { grid-column: 1 / span 5; }
+.feature-shot { grid-column: 7 / -1; }
+.feature-text p { margin-top: 14px; }
+
+.feature--flip .feature-text { grid-column: 8 / -1; grid-row: 1; }
+.feature--flip .feature-shot { grid-column: 1 / span 6; grid-row: 1; }
+
+.feature-shot img { margin-inline: auto; }
+
+/* The two dialogs a little smaller than life, overlapped: one job, two steps. */
+.pair { position: relative; }
+.pair img:last-child { position: relative; width: 62%; margin: -34% 0 0 auto; }
+
+.terminal { background: #1b1d21; color: #e6e9ed; border-radius: 8px; padding: 18px 20px; overflow-x: auto; font-size: 0.92rem; line-height: 1.7; box-shadow: var(--shadow); margin: 0; }
+.terminal .note { color: #9aa3ad; }
+
+.also { columns: 2 300px; column-gap: 40px; margin: 22px 0 0; padding: 0; list-style: none; }
+.also li { break-inside: avoid; padding-bottom: 12px; }
+.also b { font-weight: 700; }
+
+/* ---- Download band ---------------------------------------------------- */
+
+.band { margin-top: clamp(72px, 10vw, 128px); padding-block: clamp(48px, 7vw, 88px); background: #005498; color: #fff; }
+.band a { color: #fff; }
+.band h2 { max-width: 16ch; }
+.band :focus-visible { outline-color: #fff; }
+
+.band-grid { display: grid; grid-template-columns: 7fr 5fr; gap: 40px clamp(32px, 6vw, 72px); margin-top: 32px; }
+
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.steps li { counter-increment: step; position: relative; padding: 0 0 22px 48px; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: -2px; font-stretch: 125%; font-weight: 800; font-size: 1.7rem; line-height: 1.1; }
+.steps strong { display: block; font-size: 1.15rem; }
+
+.band .button { background: #fff; color: #005498; margin-bottom: 26px; }
+.band .button:hover { background: #dcecfa; }
+
+.facts { margin: 0; }
+.facts > div { padding-block: 10px; border-top: 1px solid rgb(255 255 255 / 0.3); }
+.facts dt { font-weight: 700; }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.facts code { font-size: 0.86em; }
+
+/* ---- Footer ------------------------------------------------------------ */
+
+.foot { padding-block: 32px 48px; color: var(--muted); font-size: 0.95rem; }
+.foot-links { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.foot p { margin-top: 12px; }
+.foot a { color: inherit; }
+
+/* ---- Legal pages ------------------------------------------------------- */
+
+.legal { max-width: 720px; margin-inline: auto; padding: clamp(28px, 6vw, 64px) var(--gutter) 40px; }
+.legal h1 { font-size: clamp(2.2rem, 5vw, 3.2rem); }
+.legal h2 { font-size: 1.4rem; line-height: 1.2; letter-spacing: -0.01em; margin-top: 40px; }
+.legal p, .legal ul { margin: 12px 0 0; max-width: none; }
+.legal li { margin-top: 6px; }
+.legal .updated { margin-top: 12px; color: var(--muted); }
+.legal .short { margin-top: 28px; padding-left: 18px; border-left: 4px solid var(--blue); font-size: 1.12rem; }
+
+.missing { padding-block: clamp(40px, 12vw, 120px); }
+.missing p { margin-top: 18px; }
+
+/* ---- Narrow screens ---------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .top nav a[href="#features"] { display: none; }
+}
+
+@media (max-width: 820px) {
+  .failures > div { grid-template-columns: 1fr; }
+  .feature, .feature--flip { display: block; }
+  .feature-shot { margin-top: 28px; }
+  .band-grid { grid-template-columns: 1fr; }
+  .pair img:last-child { margin-top: -18%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* The extension's popup is captured at 2x and has no dark theme of its own. */
+.popup-shot { width: min(100%, 320px); }

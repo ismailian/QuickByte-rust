@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://quickbyte-app.pages.dev/sitemap.xml
