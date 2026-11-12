@@ -318,6 +318,22 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_request_waiting_under_a_cap_is_released_when_the_cap_is_lifted() {
+        // Unticking "Limit the maximum download speed" must free a transfer that
+        // is already throttled, not just the next one.
+        let limiter = Arc::new(BandwidthLimiter::new(1));
+        let _ = limiter.request(1024, &none()).await;
+        let waiter = {
+            let limiter = limiter.clone();
+            tokio::spawn(async move { limiter.request(64 * 1024, &none()).await })
+        };
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        limiter.set_bytes_per_second(0);
+        let granted = tokio::time::timeout(Duration::from_secs(1), waiter).await.expect("still throttled").unwrap().unwrap();
+        assert_eq!(granted, 64 * 1024);
+    }
+
+    #[tokio::test]
     async fn unlimited_grants_whatever_it_is_asked_for() {
         let unlimited = UnlimitedBandwidthLimiter::shared();
         assert_eq!(unlimited.request(1234, &none()).await.unwrap(), 1234);

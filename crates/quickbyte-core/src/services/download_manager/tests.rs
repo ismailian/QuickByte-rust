@@ -526,6 +526,47 @@ async fn changing_what_happens_on_completion_is_announced() {
 }
 
 #[tokio::test]
+async fn turning_a_speed_limit_off_lifts_the_download_s_limiter() {
+    let f = Fixture::new();
+    let item = f.add("file.bin", 4, false).await;
+    let limiter = Arc::clone(&f.manager.services.read()[&item.id].limits.own);
+    f.manager.set_speed_limit(item.id, 500 * 1024);
+    assert_eq!(limiter.bytes_per_second(), 500 * 1024);
+    f.manager.set_speed_limit(item.id, 0);
+    assert_eq!(limiter.bytes_per_second(), 0);
+    assert_eq!(f.get(item.id).speed_limit_bytes_per_second, 0);
+}
+
+#[tokio::test]
+async fn the_speed_limiter_tab_can_turn_a_limit_off_again() {
+    // Replays the details window's Speed Limiter tab: its copy of the download
+    // comes from the view model, which only changes on the manager's events, and
+    // it sends a limit only when it differs from that copy (details.rs speed_tab).
+    let f = Fixture::new();
+    let item = f.add("file.bin", 4, false).await;
+    let limiter = Arc::clone(&f.manager.services.read()[&item.id].limits.own);
+    let events = f.manager.subscribe();
+    let mut window_copy = f.get(item.id);
+    let mut user_sets = |limit: i64, window_copy: &mut DownloadItem| {
+        if limit != window_copy.speed_limit_bytes_per_second {
+            f.manager.set_speed_limit(item.id, limit);
+        }
+        for e in events.try_iter() {
+            if let DownloadEvent::ItemUpdated(i) = e
+                && i.id == item.id
+            {
+                *window_copy = *i;
+            }
+        }
+    };
+
+    user_sets(500 * 1024, &mut window_copy); // tick the box
+    assert_eq!(limiter.bytes_per_second(), 500 * 1024);
+    user_sets(0, &mut window_copy); // untick it
+    assert_eq!(limiter.bytes_per_second(), 0, "the cap stayed on after the box was unticked");
+}
+
+#[tokio::test]
 async fn a_negative_speed_limit_is_read_as_unlimited() {
     let f = Fixture::new();
     let item = f.add("file.bin", 4, false).await;
