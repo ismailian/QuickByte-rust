@@ -15,6 +15,7 @@ crates/
   quickbyte-cli/     the command line -> qb.exe
 installer/           Inno Setup script (same AppId as the C# installer: upgrades in place)
 scripts/             build-release.ps1
+site/                the website (Cloudflare Pages); site/releases/ is written by build-release.ps1
 ```
 
 ## Building
@@ -57,7 +58,7 @@ The version lives only in `[workspace.package] version` in `Cargo.toml`.
 This builds in release mode, stages `QuickByte.exe`, `QuickByte.Agent.exe` and `qb.exe`, compiles
 `installer/QuickByte.iss` into `installer/Output/QuickByte-<version>-Setup.exe`, and writes
 `latest.json` with the installer's size and SHA-256. With `-PublishToSite`, it also copies both
-files into `../site/releases/`, so deploying the website publishes the update. Copies already
+files into `site/releases/` (removing older installers there), so deploying the website publishes the update. Copies already
 installed, including the C# 1.26 builds, are then offered the update at their next launch.
 
 A pre-release label or a build number can be set without editing anything:

@@ -5,13 +5,14 @@
 
 .DESCRIPTION
     1. cargo build --release for the whole workspace (static CRT, LTO).
-    2. Stages the binaries under their shipped names in rust\dist\stage:
+    2. Stages the binaries under their shipped names in dist\stage:
          QuickByte.exe, QuickByte.Agent.exe (built as quickbyte-agent.exe), qb.exe
     3. Compiles installer\QuickByte.iss with Inno Setup 6 -> installer\Output\QuickByte-<version>-Setup.exe
     4. Writes latest.json beside it (and, with -PublishToSite, copies both into
-       site\releases\ so deploying the website publishes the update).
+       site\releases\ so deploying the website publishes the update; older
+       installers there are removed, since latest.json points at one only).
 
-    The version is read from [workspace.package] in rust\Cargo.toml: the single
+    The version is read from [workspace.package] in Cargo.toml: the single
     source of truth. QB_VERSION_SUFFIX / QB_BUILD_REVISION are honoured by the
     build scripts for pre-release labels and build numbers.
 
@@ -31,12 +32,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $rust = Split-Path -Parent $PSScriptRoot
-$repo = Split-Path -Parent $rust
 
 # --- version ---------------------------------------------------------------
 $manifest = Get-Content (Join-Path $rust 'Cargo.toml') -Raw
 if ($manifest -notmatch '(?ms)^\[workspace\.package\].*?^version\s*=\s*"([^"]+)"') {
-    throw "Could not read [workspace.package] version from rust\Cargo.toml"
+    throw "Could not read [workspace.package] version from Cargo.toml"
 }
 $version = $Matches[1]
 if ($env:QB_VERSION_SUFFIX) { $version = "$version-$($env:QB_VERSION_SUFFIX.Trim())" }
@@ -111,8 +111,11 @@ Write-Host "SHA-256:   $hash"
 Write-Host "Manifest:  $latestPath"
 
 if ($PublishToSite) {
-    $siteReleases = Join-Path $repo 'site\releases'
+    $siteReleases = Join-Path $rust 'site\releases'
     New-Item -ItemType Directory -Force $siteReleases | Out-Null
+    Get-ChildItem $siteReleases -Filter 'QuickByte-*-Setup.exe' |
+        Where-Object { $_.Name -ne $setupName } |
+        Remove-Item -Force
     Copy-Item $setup $siteReleases -Force
     Copy-Item $latestPath $siteReleases -Force
     Write-Host "Copied to $siteReleases (deploy the site to publish the update)." -ForegroundColor Green
