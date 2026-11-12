@@ -2,7 +2,7 @@
 ;
 ; Normally compiled by scripts\build-release.ps1, which builds the release
 ; binaries, stages them under their shipped names and runs:
-;   ISCC.exe /DAppVersion=1.27.1 /DSourceDir=dist\stage installer\QuickByte.iss
+;   ISCC.exe /DAppVersion=1.28.0 /DSourceDir=dist\stage installer\QuickByte.iss
 ;
 ; THE UPGRADE FROM THE C# BUILD (MIGRATION.md §6) RESTS ON THIS FILE:
 ;   * AppId is the C# installer's AppId. Inno therefore treats this setup as an
