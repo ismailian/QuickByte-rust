@@ -244,10 +244,13 @@ impl DownloadManager {
         });
     }
 
+    /// Changes an item in place and tells subscribers, so the view model (and
+    /// every window drawn from it) shows the change rather than its old copy.
     fn update(&self, download_id: Uuid, mut f: impl FnMut(&mut DownloadItem)) -> bool {
         match self.service(download_id) {
             Some(service) => {
                 service.update_item(&mut f);
+                self.hub.publish(DownloadEvent::ItemUpdated(Box::new(service.item())));
                 true
             }
             None => false,

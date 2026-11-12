@@ -509,6 +509,23 @@ async fn what_happens_on_completion_is_persisted_with_the_download() {
 }
 
 #[tokio::test]
+async fn changing_what_happens_on_completion_is_announced() {
+    // The details window draws from the view model, which only learns of the
+    // change through this event; without it the checkbox snaps straight back.
+    let f = Fixture::new();
+    let item = f.add("file.bin", 4, false).await;
+    let events = f.manager.subscribe();
+    f.manager.set_completion_actions(item.id, CompletionActions::OPEN_FOLDER, PowerAction::Sleep);
+    let updated = events
+        .try_iter()
+        .find_map(|e| if let DownloadEvent::ItemUpdated(i) = e { Some(i) } else { None })
+        .expect("an ItemUpdated event");
+    assert_eq!(updated.id, item.id);
+    assert_eq!(updated.on_completion, CompletionActions::OPEN_FOLDER);
+    assert_eq!(updated.power_action_when_done, PowerAction::Sleep);
+}
+
+#[tokio::test]
 async fn a_negative_speed_limit_is_read_as_unlimited() {
     let f = Fixture::new();
     let item = f.add("file.bin", 4, false).await;
