@@ -547,7 +547,7 @@ async fn the_speed_limiter_tab_can_turn_a_limit_off_again() {
     let limiter = Arc::clone(&f.manager.services.read()[&item.id].limits.own);
     let events = f.manager.subscribe();
     let mut window_copy = f.get(item.id);
-    let mut user_sets = |limit: i64, window_copy: &mut DownloadItem| {
+    let user_sets = |limit: i64, window_copy: &mut DownloadItem| {
         if limit != window_copy.speed_limit_bytes_per_second {
             f.manager.set_speed_limit(item.id, limit);
         }
