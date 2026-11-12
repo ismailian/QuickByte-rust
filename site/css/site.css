@@ -1,4 +1,4 @@
-/* QuickByte site. The colours are the app's own (src/QuickByte.UI/Controls/Theme.cs),
+/* QuickByte site. The colours are the app's own (crates/quickbyte-ui/src/theme.rs),
    so a screenshot sits on the page as if it belonged there. */
 
 @font-face {
@@ -136,10 +136,15 @@ p { margin: 0; max-width: 62ch; }
 .section > .wrap > h2 { max-width: 20ch; }
 .section-intro { margin-top: 16px; font-size: 1.15rem; color: var(--muted); }
 
-.failures { margin: clamp(28px, 4vw, 48px) 0 0; border-top: 2px solid var(--ink); }
+.failures, .points { margin: clamp(28px, 4vw, 48px) 0 0; border-top: 2px solid var(--ink); }
 .failures > div { display: grid; grid-template-columns: 5fr 7fr; gap: 6px 40px; padding-block: 20px; border-bottom: 1px solid var(--line); }
-.failures dt { font-weight: 700; font-size: 1.15rem; line-height: 1.3; }
-.failures dd { margin: 0; color: var(--muted); max-width: 58ch; }
+.failures dt, .points dt { font-weight: 700; font-size: 1.15rem; line-height: 1.3; }
+.failures dd, .points dd { margin: 0; color: var(--muted); max-width: 58ch; }
+
+/* The rebuild: four short claims side by side, read as one row. */
+.points { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 32px; }
+.points > div { padding-block: 20px; }
+.points dd { margin-top: 8px; }
 
 /* ---- Feature pairs ---------------------------------------------------- */
 
@@ -213,12 +218,21 @@ p { margin: 0; max-width: 62ch; }
   .top nav a[href="#features"] { display: none; }
 }
 
+@media (max-width: 1000px) {
+  .points { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 820px) {
   .failures > div { grid-template-columns: 1fr; }
   .feature, .feature--flip { display: block; }
   .feature-shot { margin-top: 28px; }
   .band-grid { grid-template-columns: 1fr; }
   .pair img:last-child { margin-top: -18%; }
+}
+
+@media (max-width: 560px) {
+  .points { grid-template-columns: 1fr; }
+  .points > div { border-bottom: 1px solid var(--line); }
 }
 
 @media (prefers-reduced-motion: reduce) {

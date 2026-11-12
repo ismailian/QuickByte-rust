@@ -38,8 +38,8 @@
         <h1>Download big files faster, and never start one over.</h1>
         <p class="lede">QuickByte is a free download manager for Windows. It fetches a file over up to 32 connections at once, takes downloads over from your browser, and carries on after a pause, a crash or a dropped connection.</p>
         <div class="get">
-          <a class="button" data-installer href="/releases/QuickByte-1.25.1-x64.exe">Download for Windows</a>
-          <span class="get-note">Version <span data-release="version">1.25.1</span>, <span data-release="size">2.7 MB</span>. Needs the <a href="#download">.NET 8 runtime</a>.</span>
+          <a class="button" data-installer href="/releases/QuickByte-1.27.1-Setup.exe">Download for Windows</a>
+          <span class="get-note">Version <span data-release="version">1.27.1</span>, <span data-release="size">6.2 MB</span>. Nothing else to install.</span>
         </div>
       </div>
 
@@ -57,9 +57,34 @@
     <div class="wrap overview">
       <picture>
         <source srcset="/img/main-dark.png" media="(prefers-color-scheme: dark)">
-        <img class="shot" src="/img/main-light.png" width="1168" height="652" alt="QuickByte's main window: three downloads running at 55 MB/s, with queued, paused, failed and finished files listed below them.">
+        <img class="shot" src="/img/main-light.png" width="1352" height="814" alt="QuickByte's main window: three downloads running at about 43 MB/s together, with queued, paused, failed and finished files listed below them.">
       </picture>
     </div>
+
+    <section class="section">
+      <div class="wrap">
+        <h2>Rebuilt as a native app, with nothing else to install.</h2>
+        <p class="section-intro">QuickByte is now written in Rust. It does everything the earlier versions did, in a more compact window, and no longer needs the .NET runtime.</p>
+        <dl class="points">
+          <div>
+            <dt>One small installer</dt>
+            <dd>About 6 MB, and it's all you need. Earlier versions also needed Microsoft's .NET 8 Desktop Runtime, a separate download of about 55 MB.</dd>
+          </div>
+          <div>
+            <dt>Opens in about half a second</dt>
+            <dd>The app, the queue scheduler and the <code>qb</code> command line are each a single native program. The scheduler stays light enough to leave running all day.</dd>
+          </div>
+          <div>
+            <dt>More on screen</dt>
+            <dd>Smaller text and tighter controls fit more downloads in the same window. Switching between light and dark takes effect at once, with no restart.</dd>
+          </div>
+          <div>
+            <dt>Your downloads come with you</dt>
+            <dd>Install over an earlier version, or accept the update when the app offers it. Your downloads, queues, settings, saved passwords and browser pairing carry over unchanged.</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
 
     <section class="section">
       <div class="wrap">
@@ -104,7 +129,7 @@
         <div class="feature-shot">
           <picture>
             <source srcset="/img/details-dark.png" media="(prefers-color-scheme: dark)">
-            <img class="shot" src="/img/details-light.png" width="584" height="612" alt="A download's details window at 20 percent, with a bar showing eight separate ranges and a table of each connection's progress.">
+            <img class="shot" src="/img/details-light.png" width="677" height="634" alt="A download's details window at 77 percent, with a bar showing eight separate ranges and a table of each connection's progress.">
           </picture>
         </div>
       </section>
@@ -118,7 +143,7 @@
         <div class="feature-shot">
           <picture>
             <source srcset="/img/queue-schedule-dark.png" media="(prefers-color-scheme: dark)">
-            <img class="shot" src="/img/queue-schedule-light.png" width="884" height="632" alt="The Queues and Scheduler window: a queue called Overnight set to start at 01:30 every day, stop at 07:00 and wake the computer.">
+            <img class="shot" src="/img/queue-schedule-light.png" width="1027" height="714" alt="The Queues and Scheduler window: a queue called Overnight set to start at 01:30 every day, stop at 07:00 and wake the computer.">
           </picture>
         </div>
       </section>
@@ -132,7 +157,7 @@
         <div class="feature-shot">
           <picture>
             <source srcset="/img/add-dark.png" media="(prefers-color-scheme: dark)">
-            <img class="shot" src="/img/add-light.png" width="564" height="640" alt="The Add New Download window with a video address entered and a Quality list set to 1080p at 5.2 megabits per second.">
+            <img class="shot" src="/img/add-light.png" width="687" height="579" alt="The Add New Download window with a video address entered and a Quality list set to 1080p at 5.2 megabits per second.">
           </picture>
         </div>
       </section>
@@ -144,7 +169,7 @@
           <p>It talks only to QuickByte on your own computer. It isn't in the browser stores yet, so for now you <a href="https://github.com/ismailian/quickbyte/tree/main/browser/chrome-extension">load it by hand</a>.</p>
         </div>
         <div class="feature-shot">
-          <img class="shot popup-shot" src="/img/extension-popup.png" width="520" height="515" alt="The QuickByte browser extension's popup: connected to QuickByte 1.25.1, listing two videos on the current page, each with a Download button.">
+          <img class="shot popup-shot" src="/img/extension-popup.png" width="520" height="515" alt="The QuickByte browser extension's popup: connected to QuickByte, listing two videos on the current page, each with a Download button.">
         </div>
       </section>
 
@@ -190,12 +215,12 @@ qb queue start Night</code></pre>
           <div>
             <ol class="steps">
               <li>
-                <strong>Install the .NET 8 Desktop Runtime</strong>
-                QuickByte runs on it and the installer doesn't include it. Get the x64 version from <a href="https://dotnet.microsoft.com/download/dotnet/8.0">Microsoft</a>.
+                <strong>Run the QuickByte installer</strong>
+                The installer isn't code-signed yet, so Windows SmartScreen may warn you. Choose More info, then Run anyway. Nothing else needs installing first.
               </li>
               <li>
-                <strong>Run the QuickByte installer</strong>
-                The installer isn't code-signed yet, so Windows SmartScreen may warn you. Choose More info, then Run anyway.
+                <strong>Already have QuickByte? Install over it</strong>
+                Or choose Help &gt; Check for Updates in the app. Your downloads, queues and settings stay where they are. If you installed the .NET 8 runtime only for QuickByte, you can remove it afterwards.
               </li>
               <li>
                 <strong>Add the browser extension, if you want it</strong>
@@ -204,14 +229,14 @@ qb queue start Night</code></pre>
             </ol>
           </div>
           <div>
-            <a class="button" data-installer href="/releases/QuickByte-1.25.1-x64.exe">Download <span data-release="version">1.25.1</span></a>
+            <a class="button" data-installer href="/releases/QuickByte-1.27.1-Setup.exe">Download <span data-release="version">1.27.1</span></a>
             <dl class="facts">
               <div><dt>Works on</dt><dd>Windows 10 and 11, 64-bit</dd></div>
-              <div><dt>Size</dt><dd data-release="size">2.7 MB</dd></div>
-              <div><dt>Released</dt><dd data-release="date">31 October 2026</dd></div>
-              <div><dt>SHA-256</dt><dd><code data-release="sha256">1ecaa2de4b611f0c8d2e0ecac2451bc97665923b41ef14a551201a1fc0d00af8</code></dd></div>
+              <div><dt>Size</dt><dd data-release="size">6.2 MB</dd></div>
+              <div><dt>Released</dt><dd data-release="date">12 November 2026</dd></div>
+              <div><dt>SHA-256</dt><dd><code data-release="sha256">16ba3393fbe361d44620724babc5f062b5d9199d3d128f2face5d84911f77cc6</code></dd></div>
             </dl>
-            <p>To check your copy, run <code>Get-FileHash <span data-release="file">QuickByte-1.25.1-x64.exe</span></code> in PowerShell.</p>
+            <p>To check your copy, run <code>Get-FileHash <span data-release="file">QuickByte-1.27.1-Setup.exe</span></code> in PowerShell.</p>
           </div>
         </div>
       </div>
